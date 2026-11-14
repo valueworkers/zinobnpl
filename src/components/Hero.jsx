@@ -25,7 +25,7 @@ export default function Hero() {
 
       <aside className="route" aria-label="How an order is paid">
         <p className="eyebrow">Your order, split in two</p>
-        <div className="route-cities"><span>China</span><span>India</span></div>
+        <div className="route-cities"><span>China</span><span>Your Country</span></div>
         <div className="route-line" aria-hidden="true"></div>
         <div className="split"><div className="d">20% now</div><div className="b">80% later</div></div>
         <div className="split-cap"><span>Deposit confirms the order</span><span>Balance on approved terms</span></div>
