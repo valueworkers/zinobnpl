@@ -9,7 +9,7 @@ export default function Hero() {
   return (
     <div className="wrap hero">
       <div>
-        <p className="eyebrow">Trade credit for Indian MSMEs</p>
+        <p className="eyebrow">Trade credit for genuine businesses, worldwide</p>
         <h1 style={{ marginTop: '1rem' }}>Buy wholesale from China. <mark>Pay later.</mark></h1>
         <p className="lede">Get an approved trade credit line upfront, then pay just a <strong>20% deposit</strong> to start receiving your supplies. No security, no guarantee, no bank.</p>
         <div className="cta-row">
