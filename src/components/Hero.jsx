@@ -19,7 +19,7 @@ export default function Hero() {
         <div className="proof">
           <span>Approved before you order</span>
           <span>One account, every supplier</span>
-          <span>Built for GST-registered businesses</span>
+          <span>Built for registered, verifiable businesses</span>
         </div>
       </div>
 
