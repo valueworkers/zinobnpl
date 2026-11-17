@@ -13,7 +13,7 @@ export default function Categories() {
       <div className="cats">
         {cats.map((c) => <span key={c}>{c}</span>)}
       </div>
-      <p className="cats-note">Some goods need BIS certification or an import licence before they can clear Indian customs. Check the rules for your product before you order.</p>
+      <p className="cats-note">Some goods require product certifications, permits or import licences to clear customs. Requirements vary by product and destination country, so check the rules before you order.</p>
     </section>
   )
 }

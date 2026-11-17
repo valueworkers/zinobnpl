@@ -146,7 +146,7 @@ export const infoPages = {
   '/about-us': {
     eyebrow: 'About ZinoBNPL',
     title: 'Wholesale purchasing, made clearer.',
-    intro: 'ZinoBNPL helps Indian businesses explore wholesale suppliers and manage purchases with trade-credit options subject to approval.',
+    intro: 'ZinoBNPL helps businesses worldwide explore wholesale suppliers and manage purchases with trade-credit options, subject to service availability and approval.',
     sections: [
       {
         heading: 'A simpler way to source',

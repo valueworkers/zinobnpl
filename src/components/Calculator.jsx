@@ -19,10 +19,10 @@ const chipPresets = {
     [100000, '$100k'],
   ],
   INR: [
-    [500000, '₹5 lakh'],
-    [1000000, '₹10 lakh'],
-    [2500000, '₹25 lakh'],
-    [10000000, '₹1 crore'],
+    [500000, '₹500,000'],
+    [1000000, '₹1,000,000'],
+    [2500000, '₹2,500,000'],
+    [10000000, '₹10,000,000'],
   ],
 }
 
@@ -200,7 +200,7 @@ export default function Calculator() {
             ) : (
               <p className="validation-summary" role="status">Enter a service fee of at least 3% and valid balance days to see the estimate.</p>
             )}
-            <p className="note">Estimate only, not a quote. Customs duty, IGST and port clearance charges are paid separately at import and are not included here. Final figures are confirmed when you place an order, subject to approval.</p>
+            <p className="note">Estimate only, not a quote. Customs duties, import taxes and port or clearance charges are paid separately and are not included here. Final figures are confirmed when you place an order, subject to approval.</p>
           </div>
         </div>
       </section>

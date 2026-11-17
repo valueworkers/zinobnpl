@@ -27,7 +27,7 @@ export default function Footer({ isStandalonePage = false }) {
       <div className="footer-main">
         <div className="footer-brand">
           <Logo href={isStandalonePage ? '/' : '#top'} />
-          <p>Wholesale sourcing and payment options for Indian businesses.</p>
+          <p>Wholesale sourcing and payment options for businesses worldwide.</p>
         </div>
         <div className="footer-groups">
           {footerGroups.map((group) => (
@@ -46,7 +46,7 @@ export default function Footer({ isStandalonePage = false }) {
       <div className="footer-bottom">
         <p className="legal">
           Trade credit is subject to approval and website estimates are illustrative.
-          Imports into India must meet customs, BIS and other regulatory requirements.
+          Import requirements, duties and taxes vary by product and destination.
         </p>
         <p className="footer-copyright">© 2026 ZinoBNPL · zinobnpl.com</p>
       </div>

@@ -1,7 +1,7 @@
 const route = [
   ['Credit approved', 'Apply once, see your limit first'],
   ['20% deposit', 'Production starts'],
-  ['Goods ship to an Indian port', 'Insured and freighted'],
+  ['Goods ship to your destination', 'Insured and freighted, subject to route availability'],
   ['Settle the balance', 'Later, on the terms you were approved for'],
 ]
 
