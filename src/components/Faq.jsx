@@ -1,5 +1,5 @@
 const faqs = [
-  ['Who can apply?', 'Registered Indian businesses that import for trade or production, including MSMEs, traders, manufacturers and retailers. You will need a GSTIN, a business PAN and an Importer-Exporter Code.'],
+  ['Who can apply?', 'Registered businesses importing for trade or production—including MSMEs, traders, manufacturers and retailers—may apply. In India, applicants need a valid GSTIN, business PAN and Importer-Exporter Code (IEC). Applicants in other countries need equivalent local business, tax and import/export registrations. Eligibility depends on service availability and account approval.'],
   ['Do I need to give security or a guarantee?', 'No. There is no property security and no personal guarantee. Your approval rests on your business details and the account you open.'],
   ['How is my credit line decided?', 'We assess your business and confirm an approved amount and term in writing before you place any order, so you know what you can buy.'],
   ['What does it cost?', 'The service fee and any freight and insurance are shown on your quotation before you pay anything. The calculator above uses placeholder rates so you can plan, not a quote.'],

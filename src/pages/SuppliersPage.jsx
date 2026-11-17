@@ -87,11 +87,6 @@ function SupplierCard({ supplier }) {
         )}
         <div className="supplier-card-footer">
           {supplier.terms && <span>Terms: <strong>{supplier.terms}</strong></span>}
-          {supplier.website ? (
-            <a href={supplier.website} target="_blank" rel="noreferrer">Visit website</a>
-          ) : (
-            <span>China-based supplier</span>
-          )}
         </div>
       </div>
     </article>
@@ -129,13 +124,18 @@ export default function SuppliersPage() {
             Explore verified manufacturers across the categories wholesale buyers need.
             Browse supplier profiles, locations and product capabilities.
           </p>
+          <div className="supplier-hero-actions">
+            <a className="btn btn-primary" href="#supplier-invite">
+              Recommend or onboard a supplier
+            </a>
+          </div>
         </div>
         <aside className="supplier-summary" aria-label="Catalogue overview">
           <span className="supplier-summary-mark" aria-hidden="true">✓</span>
           <p className="eyebrow">Public catalogue</p>
           <strong>{supplierRecords.length}</strong>
           <p>verified suppliers across {categories.length} categories</p>
-          <span className="supplier-summary-note">Supplier details from Jinport's public listings</span>
+          <span className="supplier-summary-note">Supplier details from zinobnpl's public listings</span>
         </aside>
       </section>
 
@@ -216,7 +216,7 @@ export default function SuppliersPage() {
             <p className="eyebrow">For suppliers</p>
             <h2>Make your factory easier to discover.</h2>
             <p>
-              Jinport's published supplier programme is for factories based in China.
+              Zinobnpl's published supplier programme is for factories based in China.
               It asks prospective suppliers to introduce their company and export experience,
               complete verification, and then fulfil confirmed orders.
             </p>
@@ -235,14 +235,37 @@ export default function SuppliersPage() {
             <article>
               <span>03</span>
               <h3>Receive confirmed orders</h3>
-              <p>Jinport states that confirmed orders are paid in full before production begins.</p>
+              <p>zinobnpl states that confirmed orders are paid in full before production begins.</p>
             </article>
           </div>
           <div className="supplier-contact">
-            <p>For Jinport supplier enquiries</p>
-            <a href="mailto:suppliers@jinport.com?subject=Supplier%20verification%20with%20Jinport">
-              suppliers@jinport.com
+            <p>For zinobnpl supplier enquiries</p>
+            <a href="mailto:suppliers@zinobnpl.com?subject=Supplier%20verification%20with%20zinobnpl">
+              suppliers@zinobnpl.com
             </a>
+          </div>
+        </div>
+      </section>
+
+      <section id="supplier-invite" className="supplier-invite" aria-labelledby="supplier-invite-title">
+        <div className="wrap">
+          <div className="supplier-invite-card">
+            <div className="supplier-invite-copy">
+              <p className="eyebrow">Grow the supplier network</p>
+              <h2 id="supplier-invite-title">Have a supplier you’d like to see here?</h2>
+              <p>
+                Recommend a supplier for the catalogue or introduce your own business for onboarding
+                using our short supplier form.
+              </p>
+            </div>
+            <div className="supplier-invite-actions">
+              <a className="btn btn-primary" href="/recommend-supplier?request=recommendation">
+                Recommend a supplier
+              </a>
+              <a className="btn btn-ghost" href="/recommend-supplier?request=onboarding">
+                Start onboarding
+              </a>
+            </div>
           </div>
         </div>
       </section>

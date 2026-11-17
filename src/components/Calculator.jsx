@@ -49,6 +49,19 @@ export default function Calculator() {
   const symbol = useMemo(() => currencySymbol(currency), [currency])
   const chips = useMemo(() => defaultChips(currency), [currency])
   const rate = currencyByCode[currency]?.rate ?? 1
+  const cif = basis === 'cif'
+  const maxDays = cif ? 60 : 90
+  const feeNumber = Number(fee)
+  const daysNumber = Number(days)
+  const feeError = fee.trim() === '' || !Number.isFinite(feeNumber) || feeNumber < 3
+    ? 'Service fee must be at least 3%.'
+    : ''
+  const daysError = days.trim() === '' || !Number.isInteger(daysNumber) || daysNumber < 0
+    ? 'Enter a whole number of days.'
+    : daysNumber > maxDays
+      ? `Maximum ${maxDays} days for ${cif ? 'CIF' : 'Ex Works'}.`
+      : ''
+  const inputsValid = !feeError && !daysError
 
   const switchCurrency = (next) => {
     if (next === currency) return
@@ -57,7 +70,6 @@ export default function Calculator() {
     setAmount(formatNumber(next, converted))
   }
 
-  const cif = basis === 'cif'
   const g = num(amount)
   const fr = cif ? (g * num(freight)) / 100 : 0
   const fv = (g * num(fee)) / 100
@@ -76,7 +88,7 @@ export default function Calculator() {
         <div className="calc">
           <form className="panel" onSubmit={(e) => e.preventDefault()}>
             <div className="field">
-              <label htmlFor="currency">Currency</label>
+              <label htmlFor="currency">Choose your currency</label>
               <select
                 id="currency"
                 className="currency-select"
@@ -91,7 +103,7 @@ export default function Calculator() {
               </select>
             </div>
             <div className="field">
-              <label htmlFor="amount">Goods value ({currency})</label>
+              <label htmlFor="amount">Order value ({currency})</label>
               <div className="input">
                 <span>{symbol}</span>
                 <input
@@ -125,7 +137,21 @@ export default function Calculator() {
             <div className="assume">
               <div className="field">
                 <label htmlFor="fee">Service fee</label>
-                <div className="input small"><input id="fee" inputMode="decimal" value={fee} onChange={(e) => setFee(e.target.value)} /><em>%</em></div>
+                <div className={`input small${feeError ? ' invalid' : ''}`}>
+                  <input
+                    id="fee"
+                    type="number"
+                    min="3"
+                    step="any"
+                    inputMode="decimal"
+                    value={fee}
+                    aria-invalid={Boolean(feeError)}
+                    aria-describedby={feeError ? 'fee-error' : undefined}
+                    onChange={(e) => setFee(e.target.value)}
+                  />
+                  <em>%</em>
+                </div>
+                {feeError && <p className="field-error" id="fee-error">{feeError}</p>}
               </div>
               <div className="field">
                 <label htmlFor="freight">Freight + insurance</label>
@@ -133,7 +159,22 @@ export default function Calculator() {
               </div>
               <div className="field">
                 <label htmlFor="days">Balance due</label>
-                <div className="input small"><input id="days" inputMode="numeric" value={days} onChange={(e) => setDays(e.target.value)} /><em>days</em></div>
+                <div className={`input small${daysError ? ' invalid' : ''}`}>
+                  <input
+                    id="days"
+                    type="number"
+                    min="0"
+                    max={maxDays}
+                    step="1"
+                    inputMode="numeric"
+                    value={days}
+                    aria-invalid={Boolean(daysError)}
+                    aria-describedby={daysError ? 'days-error' : undefined}
+                    onChange={(e) => setDays(e.target.value)}
+                  />
+                  <em>days</em>
+                </div>
+                {daysError && <p className="field-error" id="days-error">{daysError}</p>}
               </div>
             </div>
             <p className="note">
@@ -143,16 +184,22 @@ export default function Calculator() {
           </form>
 
           <div className="result" aria-live="polite">
-            <dl>
-              <div className="row"><dt>Goods value</dt><dd>{money(g)}</dd></div>
-              {cif && <div className="row"><dt>Freight + insurance (indicative)</dt><dd>{money(fr)}</dd></div>}
-              <div className="row"><dt>Service fee</dt><dd>{money(fv)}</dd></div>
-              <div className="row total"><dt>Order total</dt><dd>{money(total)}</dd></div>
-            </dl>
-            <div className="pay">
-              <div className="now"><small>Deposit today (20%)</small><strong>{money(total * 0.2)}</strong><em>Due to confirm the order</em></div>
-              <div className="later"><small>Balance later (80%)</small><strong>{money(total * 0.8)}</strong><em>Within {d} day{d === 1 ? '' : 's'} of port arrival</em></div>
-            </div>
+            {inputsValid ? (
+              <>
+                <dl>
+                  <div className="row"><dt>Order value</dt><dd>{money(g)}</dd></div>
+                  {cif && <div className="row"><dt>Freight + insurance (indicative)</dt><dd>{money(fr)}</dd></div>}
+                  <div className="row"><dt>Service fee</dt><dd>{money(fv)}</dd></div>
+                  <div className="row total"><dt>Order total</dt><dd>{money(total)}</dd></div>
+                </dl>
+                <div className="pay">
+                  <div className="now"><small>Deposit today (20%)</small><strong>{money(total * 0.2)}</strong><em>Due to confirm the order</em></div>
+                  <div className="later"><small>Balance later (80%)</small><strong>{money(total * 0.8)}</strong><em>Within {d} day{d === 1 ? '' : 's'} of port arrival</em></div>
+                </div>
+              </>
+            ) : (
+              <p className="validation-summary" role="status">Enter a service fee of at least 3% and valid balance days to see the estimate.</p>
+            )}
             <p className="note">Estimate only, not a quote. Customs duty, IGST and port clearance charges are paid separately at import and are not included here. Final figures are confirmed when you place an order, subject to approval.</p>
           </div>
         </div>

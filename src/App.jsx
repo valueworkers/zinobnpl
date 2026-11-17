@@ -12,15 +12,25 @@ import Closing from './components/Closing'
 import Footer from './components/Footer'
 import ThemeSwitcher from './components/ThemeSwitcher'
 import SuppliersPage from './pages/SuppliersPage'
+import InfoPage, { infoPages } from './pages/InfoPage'
+import SupplierRecommendationPage from './pages/SupplierRecommendationPage'
 
 export default function App() {
-  const isSuppliersPage = window.location.pathname.replace(/\/+$/, '') === '/suppliers'
+  const pathname = window.location.pathname.replace(/\/+$/, '') || '/'
+  const isSuppliersPage = pathname === '/suppliers'
+  const isSupplierRecommendationPage = pathname === '/recommend-supplier'
+  const infoPage = infoPages[pathname]
+  const isStandalonePage = isSuppliersPage || isSupplierRecommendationPage || Boolean(infoPage)
 
   return (
     <>
-      <Header isSuppliersPage={isSuppliersPage} />
+      <Header isStandalonePage={isStandalonePage} isSuppliersPage={isSuppliersPage} />
       {isSuppliersPage ? (
         <SuppliersPage />
+      ) : isSupplierRecommendationPage ? (
+        <SupplierRecommendationPage />
+      ) : infoPage ? (
+        <InfoPage page={infoPage} />
       ) : (
         <main id="top">
           <Hero />
@@ -35,7 +45,7 @@ export default function App() {
           <Closing />
         </main>
       )}
-      <Footer isSuppliersPage={isSuppliersPage} />
+      <Footer isStandalonePage={isStandalonePage} />
       <ThemeSwitcher />
     </>
   )

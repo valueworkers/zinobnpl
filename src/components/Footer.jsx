@@ -1,19 +1,55 @@
 import Logo from './Logo'
 import { navLinks } from './Header'
 
-export default function Footer({ isSuppliersPage = false }) {
+const infoLinks = [
+  ['/privacy-policy', 'Privacy Policy'],
+  ['/terms-and-conditions', 'Terms & Conditions'],
+  ['/shipping-policy', 'Shipping Policy'],
+  ['/refund-policy', 'Refund Policy'],
+]
+
+const footerGroups = [
+  { title: 'Explore', links: navLinks },
+  { title: 'Policies', links: infoLinks },
+  {
+    title: 'Company',
+    links: [
+      ['/about-us', 'About us'],
+      ['/contact-us', 'Contact us'],
+    ],
+  },
+  { title: 'Get started', links: [['#apply', 'Open an account']] },
+]
+
+export default function Footer({ isStandalonePage = false }) {
   return (
     <footer className="wrap">
-      <div className="foot-top">
-        <Logo href={isSuppliersPage ? '/' : '#top'} />
-        <ul>
-          {[...navLinks, ['#apply', 'Open an account']].map(([href, label]) => {
-            const destination = isSuppliersPage && href.startsWith('#') ? `/${href}` : href
-            return <li key={href}><a href={destination}>{label}</a></li>
-          })}
-        </ul>
+      <div className="footer-main">
+        <div className="footer-brand">
+          <Logo href={isStandalonePage ? '/' : '#top'} />
+          <p>Wholesale sourcing and payment options for Indian businesses.</p>
+        </div>
+        <div className="footer-groups">
+          {footerGroups.map((group) => (
+            <nav key={group.title} aria-label={group.title}>
+              <h2>{group.title}</h2>
+              <ul>
+                {group.links.map(([href, label]) => {
+                  const destination = isStandalonePage && href.startsWith('#') ? `/${href}` : href
+                  return <li key={href}><a href={destination}>{label}</a></li>
+                })}
+              </ul>
+            </nav>
+          ))}
+        </div>
       </div>
-      <p className="legal">ZinoBNPL is a wholesale trade platform for business buyers. Trade credit is subject to approval and estimates on this page are illustrative. Imports into India must meet customs, BIS and other regulatory requirements. © 2026 ZinoBNPL, zinobnpl.com</p>
+      <div className="footer-bottom">
+        <p className="legal">
+          Trade credit is subject to approval and website estimates are illustrative.
+          Imports into India must meet customs, BIS and other regulatory requirements.
+        </p>
+        <p className="footer-copyright">© 2026 ZinoBNPL · zinobnpl.com</p>
+      </div>
     </footer>
   )
 }
