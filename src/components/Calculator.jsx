@@ -1,25 +1,61 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import {
+  currencies,
+  currencyByCode,
+  currencySymbol,
+  convert,
+  formatMoney,
+  formatNumber,
+} from '../data/currencies'
 
-const inr = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 })
-const money = (n) => '₹' + inr.format(Math.round(n))
+const DEFAULT = 'USD'
+const DEFAULT_AMOUNT = 12000
+
+const chipPresets = {
+  USD: [
+    [5000, '$5k'],
+    [10000, '$10k'],
+    [25000, '$25k'],
+    [100000, '$100k'],
+  ],
+  INR: [
+    [500000, '₹5 lakh'],
+    [1000000, '₹10 lakh'],
+    [2500000, '₹25 lakh'],
+    [10000000, '₹1 crore'],
+  ],
+}
+
+function defaultChips(code) {
+  if (chipPresets[code]) return chipPresets[code]
+  const base = [5000, 10000, 25000, 100000].map((usd) => Math.round(convert(usd, 'USD', code)))
+  const sym = currencySymbol(code)
+  return base.map((v) => [v, `${sym}${formatNumber(code, v)}`])
+}
+
 const num = (s) => {
   const v = parseFloat(String(s).replace(/,/g, ''))
   return isNaN(v) || v < 0 ? 0 : v
 }
 
-const chips = [
-  [500000, '₹5 lakh'],
-  [1000000, '₹10 lakh'],
-  [2500000, '₹25 lakh'],
-  [10000000, '₹1 crore'],
-]
-
 export default function Calculator() {
-  const [amount, setAmount] = useState('10,00,000')
+  const [currency, setCurrency] = useState(DEFAULT)
+  const [amount, setAmount] = useState(formatNumber(DEFAULT, DEFAULT_AMOUNT))
   const [basis, setBasis] = useState('cif')
   const [fee, setFee] = useState('4.5')
   const [freight, setFreight] = useState('8')
   const [days, setDays] = useState('60')
+
+  const symbol = useMemo(() => currencySymbol(currency), [currency])
+  const chips = useMemo(() => defaultChips(currency), [currency])
+  const rate = currencyByCode[currency]?.rate ?? 1
+
+  const switchCurrency = (next) => {
+    if (next === currency) return
+    const converted = convert(num(amount), currency, next)
+    setCurrency(next)
+    setAmount(formatNumber(next, converted))
+  }
 
   const cif = basis === 'cif'
   const g = num(amount)
@@ -27,6 +63,7 @@ export default function Calculator() {
   const fv = (g * num(fee)) / 100
   const total = g + fr + fv
   const d = Math.round(num(days))
+  const money = (n) => formatMoney(currency, n)
 
   return (
     <div className="band" id="calculator">
@@ -39,21 +76,36 @@ export default function Calculator() {
         <div className="calc">
           <form className="panel" onSubmit={(e) => e.preventDefault()}>
             <div className="field">
-              <label htmlFor="amount">Goods value (INR)</label>
+              <label htmlFor="currency">Currency</label>
+              <select
+                id="currency"
+                className="currency-select"
+                value={currency}
+                onChange={(e) => switchCurrency(e.target.value)}
+              >
+                {currencies.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.code} — {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="amount">Goods value ({currency})</label>
               <div className="input">
-                <span>₹</span>
+                <span>{symbol}</span>
                 <input
                   id="amount"
                   inputMode="numeric"
                   autoComplete="off"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  onBlur={() => setAmount(inr.format(num(amount)))}
+                  onBlur={() => setAmount(formatNumber(currency, num(amount)))}
                 />
               </div>
               <div className="chips">
                 {chips.map(([v, label]) => (
-                  <button key={v} type="button" className="chip" onClick={() => setAmount(inr.format(v))}>{label}</button>
+                  <button key={v} type="button" className="chip" onClick={() => setAmount(formatNumber(currency, v))}>{label}</button>
                 ))}
               </div>
             </div>
@@ -84,13 +136,16 @@ export default function Calculator() {
                 <div className="input small"><input id="days" inputMode="numeric" value={days} onChange={(e) => setDays(e.target.value)} /><em>days</em></div>
               </div>
             </div>
-            <p className="note">Service fee, freight and balance days are illustrative placeholders. Your approved terms and quotation set the real figures.</p>
+            <p className="note">
+              Currency conversion uses illustrative rates (1 USD ≈ {rate === 1 ? '1 USD' : `${formatNumber(currency, rate)} ${currency}`}).
+              Service fee, freight and balance days are placeholders. Your approved terms and quotation set the real figures.
+            </p>
           </form>
 
           <div className="result" aria-live="polite">
             <dl>
               <div className="row"><dt>Goods value</dt><dd>{money(g)}</dd></div>
-              <div className="row" hidden={!cif}><dt>Freight + insurance (indicative)</dt><dd>{money(fr)}</dd></div>
+              {cif && <div className="row"><dt>Freight + insurance (indicative)</dt><dd>{money(fr)}</dd></div>}
               <div className="row"><dt>Service fee</dt><dd>{money(fv)}</dd></div>
               <div className="row total"><dt>Order total</dt><dd>{money(total)}</dd></div>
             </dl>

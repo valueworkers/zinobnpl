@@ -116,6 +116,8 @@ section{padding-block:5rem}
 .panel{background:var(--bg);color:var(--fg);border-radius:24px;padding:1.75rem}
 .field{display:grid;gap:.4rem;margin-bottom:1.25rem}
 .field label,.field legend{font-size:.85rem;font-weight:700}
+.currency-select{font:700 1rem var(--f-body);color:var(--fg);background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:.8rem 1rem;width:100%;min-width:0;cursor:pointer}
+.currency-select:focus{outline:none;border-color:var(--fg)}
 .input{display:flex;align-items:center;border:2px solid var(--line);border-radius:14px;background:var(--surface);overflow:hidden}
 .input:focus-within{border-color:var(--fg)}
 .input span{padding-left:1rem;font-weight:700;color:var(--muted)}
