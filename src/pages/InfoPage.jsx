@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 const contactEmail = 'suppliers@zinobnpl.com'
 
@@ -199,10 +199,213 @@ function InfoSection({ section }) {
   )
 }
 
+function ContactPage({ page }) {
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    company: '',
+    country: '',
+    enquiry: 'Supplier onboarding',
+    message: '',
+  })
+  const [status, setStatus] = useState('')
+
+  const updateField = (event) => {
+    const { name, value } = event.target
+    setForm((current) => ({ ...current, [name]: value }))
+    setStatus('')
+  }
+
+  const handleSubmit = (event) => {
+    event.preventDefault()
+    const subject = `${form.enquiry} enquiry from ${form.company || form.name}`
+    const body = [
+      `Name: ${form.name}`,
+      `Email: ${form.email}`,
+      `Phone / WhatsApp: ${form.phone || 'Not provided'}`,
+      `Company: ${form.company || 'Not provided'}`,
+      `Country: ${form.country || 'Not provided'}`,
+      `Enquiry: ${form.enquiry}`,
+      '',
+      'Message:',
+      form.message,
+    ].join('\n')
+
+    setStatus('Opening your email app so you can review and send your enquiry.')
+    window.location.href = `mailto:${contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  }
+
+  return (
+    <main id="top" className="contact-page">
+      <div className="wrap">
+        <section className="contact-hero">
+          <div className="contact-hero-copy">
+            <p className="eyebrow">{page.eyebrow}</p>
+            <h1>Let’s start a conversation.</h1>
+            <p>{page.intro}</p>
+          </div>
+          <div className="contact-availability">
+            <span aria-hidden="true" />
+            <div>
+              <strong>Business enquiries</strong>
+              <p>Tell us how we can help</p>
+            </div>
+          </div>
+        </section>
+
+        <div className="contact-layout">
+          <aside className="contact-aside">
+            <p className="eyebrow">Talk to ZinoBNPL</p>
+            <h2>One enquiry.<br />The right team.</h2>
+            <p className="contact-aside-lede">
+              Share a few details and we’ll route your message to the appropriate team.
+            </p>
+
+            <div className="contact-options">
+              <div>
+                <span>01</span>
+                <div>
+                  <h3>Suppliers</h3>
+                  <p>Onboarding, verification, and product partnerships.</p>
+                </div>
+              </div>
+              <div>
+                <span>02</span>
+                <div>
+                  <h3>Buyers</h3>
+                  <p>Account, sourcing, credit, and order support.</p>
+                </div>
+              </div>
+            </div>
+
+            <a className="contact-direct-email" href={`mailto:${contactEmail}`}>
+              <span>Email us directly</span>
+              <strong>{contactEmail}</strong>
+            </a>
+          </aside>
+
+          <form className="contact-form" onSubmit={handleSubmit}>
+            <div className="contact-form-heading">
+              <p className="eyebrow">Send an enquiry</p>
+              <h2>How can we help?</h2>
+            </div>
+
+            <div className="contact-fields">
+              <div className="contact-field">
+                <label htmlFor="contact-name">Full name <span>*</span></label>
+                <input
+                  id="contact-name"
+                  name="name"
+                  autoComplete="name"
+                  placeholder="Your name"
+                  required
+                  value={form.name}
+                  onChange={updateField}
+                />
+              </div>
+              <div className="contact-field">
+                <label htmlFor="contact-email">Email address <span>*</span></label>
+                <input
+                  id="contact-email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@company.com"
+                  required
+                  value={form.email}
+                  onChange={updateField}
+                />
+              </div>
+              <div className="contact-field">
+                <label htmlFor="contact-company">Company</label>
+                <input
+                  id="contact-company"
+                  name="company"
+                  autoComplete="organization"
+                  placeholder="Company name"
+                  value={form.company}
+                  onChange={updateField}
+                />
+              </div>
+              <div className="contact-field">
+                <label htmlFor="contact-phone">Phone / WhatsApp</label>
+                <input
+                  id="contact-phone"
+                  name="phone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder="Include country code"
+                  value={form.phone}
+                  onChange={updateField}
+                />
+              </div>
+              <div className="contact-field">
+                <label htmlFor="contact-country">Country</label>
+                <input
+                  id="contact-country"
+                  name="country"
+                  autoComplete="country-name"
+                  placeholder="Where are you based?"
+                  value={form.country}
+                  onChange={updateField}
+                />
+              </div>
+              <div className="contact-field">
+                <label htmlFor="contact-enquiry">I’m contacting you about <span>*</span></label>
+                <select
+                  id="contact-enquiry"
+                  name="enquiry"
+                  required
+                  value={form.enquiry}
+                  onChange={updateField}
+                >
+                  <option>Supplier onboarding</option>
+                  <option>Supplier partnership</option>
+                  <option>Buyer account</option>
+                  <option>Existing order or account</option>
+                  <option>General enquiry</option>
+                </select>
+              </div>
+              <div className="contact-field contact-field-full">
+                <label htmlFor="contact-message">Message <span>*</span></label>
+                <textarea
+                  id="contact-message"
+                  name="message"
+                  rows="6"
+                  placeholder="Tell us about your business, products, or question..."
+                  required
+                  value={form.message}
+                  onChange={updateField}
+                />
+              </div>
+            </div>
+
+            <div className="contact-form-footer">
+              <p>
+                By continuing, you agree that ZinoBNPL may use these details to respond to your enquiry.
+              </p>
+              <button className="btn btn-primary" type="submit">
+                Send enquiry <span aria-hidden="true">→</span>
+              </button>
+            </div>
+            <p className="contact-status" role="status" hidden={!status}>{status}</p>
+          </form>
+        </div>
+      </div>
+    </main>
+  )
+}
+
 export default function InfoPage({ page }) {
   useEffect(() => {
     document.title = `${page.title} | ZinoBNPL`
   }, [page.title])
+
+  if (page.email === contactEmail) {
+    return <ContactPage page={page} />
+  }
 
   return (
     <main id="top" className="info-page">
