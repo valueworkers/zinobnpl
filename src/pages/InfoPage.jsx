@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-const contactEmail = 'suppliers@zinobnpl.com'
+const contactEmail = 'support@zinobnpl.com'
 
 export const infoPages = {
   '/privacy-policy': {
