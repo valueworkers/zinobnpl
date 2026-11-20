@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import Header from './components/Header'
 import Hero from './components/Hero'
 import Welcome from './components/Welcome'
@@ -21,6 +22,11 @@ export default function App() {
   const isSupplierRecommendationPage = pathname === '/recommend-supplier'
   const infoPage = infoPages[pathname]
   const isStandalonePage = isSuppliersPage || isSupplierRecommendationPage || Boolean(infoPage)
+
+  useEffect(() => {
+    const targetId = window.location.hash.slice(1)
+    if (targetId) document.getElementById(targetId)?.scrollIntoView()
+  }, [pathname])
 
   return (
     <>

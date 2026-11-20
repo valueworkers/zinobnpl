@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { submitForm } from '../lib/submitForm'
 
 const contactEmail = 'support@zinobnpl.com'
 
@@ -210,6 +211,7 @@ function ContactPage({ page }) {
     message: '',
   })
   const [status, setStatus] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const updateField = (event) => {
     const { name, value } = event.target
@@ -217,23 +219,19 @@ function ContactPage({ page }) {
     setStatus('')
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
-    const subject = `${form.enquiry} enquiry from ${form.company || form.name}`
-    const body = [
-      `Name: ${form.name}`,
-      `Email: ${form.email}`,
-      `Phone / WhatsApp: ${form.phone || 'Not provided'}`,
-      `Company: ${form.company || 'Not provided'}`,
-      `Country: ${form.country || 'Not provided'}`,
-      `Enquiry: ${form.enquiry}`,
-      '',
-      'Message:',
-      form.message,
-    ].join('\n')
 
-    setStatus('Opening your email app so you can review and send your enquiry.')
-    window.location.href = `mailto:${contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+    setIsSubmitting(true)
+    setStatus('')
+    try {
+      await submitForm('contact', form)
+      setStatus('Your enquiry has been submitted. Our team will be in touch.')
+    } catch (error) {
+      setStatus(error.message)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -244,13 +242,6 @@ function ContactPage({ page }) {
             <p className="eyebrow">{page.eyebrow}</p>
             <h1>Let’s start a conversation.</h1>
             <p>{page.intro}</p>
-          </div>
-          <div className="contact-availability">
-            <span aria-hidden="true" />
-            <div>
-              <strong>Business enquiries</strong>
-              <p>Tell us how we can help</p>
-            </div>
           </div>
         </section>
 
@@ -386,8 +377,8 @@ function ContactPage({ page }) {
               <p>
                 By continuing, you agree that ZinoBNPL may use these details to respond to your enquiry.
               </p>
-              <button className="btn btn-primary" type="submit">
-                Send enquiry <span aria-hidden="true">→</span>
+              <button className="btn btn-primary" type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Submitting…' : <>Send enquiry <span aria-hidden="true">→</span></>}
               </button>
             </div>
             <p className="contact-status" role="status" hidden={!status}>{status}</p>

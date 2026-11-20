@@ -95,7 +95,12 @@ function SupplierCard({ supplier }) {
 
 export default function SuppliersPage() {
   const [query, setQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [selectedCategories, setSelectedCategories] = useState(() => {
+    const requestedCategories = new URLSearchParams(window.location.search).get('category')
+    return requestedCategories
+      ? requestedCategories.split(',').filter((category) => categories.includes(category))
+      : []
+  })
   const normalizedQuery = query.trim().toLowerCase()
 
   useEffect(() => {
@@ -103,7 +108,7 @@ export default function SuppliersPage() {
   }, [])
 
   const filteredSuppliers = useMemo(() => supplierRecords.filter((supplier) => {
-    if (selectedCategory !== 'all' && supplier.category !== selectedCategory) return false
+    if (selectedCategories.length > 0 && !selectedCategories.includes(supplier.category)) return false
     if (!normalizedQuery) return true
 
     return [
@@ -112,7 +117,7 @@ export default function SuppliersPage() {
       supplier.description,
       ...supplier.products.map((product) => product.name),
     ].some((value) => value?.toLowerCase().includes(normalizedQuery))
-  }), [normalizedQuery, selectedCategory])
+  }), [normalizedQuery, selectedCategories])
 
   return (
     <main id="top" className="suppliers-page">
@@ -125,8 +130,8 @@ export default function SuppliersPage() {
             Browse supplier profiles, locations and product capabilities.
           </p>
           <div className="supplier-hero-actions">
-            <a className="btn btn-primary" href="#supplier-invite">
-              Recommend or onboard a supplier
+            <a className="btn btn-primary" href="/recommend-supplier?request=onboarding">
+              Start supplier onboarding
             </a>
           </div>
         </div>
@@ -139,7 +144,7 @@ export default function SuppliersPage() {
         </aside>
       </section>
 
-      <section className="supplier-catalogue" aria-label="Supplier catalogue">
+      <section id="supplier-catalogue" className="supplier-catalogue" aria-label="Supplier catalogue">
         <div className="wrap">
           <form className="supplier-search" role="search" onSubmit={(event) => event.preventDefault()}>
             <label className="supplier-search-input">
@@ -162,22 +167,22 @@ export default function SuppliersPage() {
           <div className="supplier-filters" aria-label="Filter by category">
             <button
               type="button"
-              className={`supplier-filter${selectedCategory === 'all' ? ' active' : ''}`}
-              aria-pressed={selectedCategory === 'all'}
-              onClick={() => setSelectedCategory('all')}
+              className={`supplier-filter${selectedCategories.length === 0 ? ' active' : ''}`}
+              aria-pressed={selectedCategories.length === 0}
+              onClick={() => setSelectedCategories([])}
             >
               All categories <span>{supplierRecords.length}</span>
             </button>
             {categories.map((category) => {
               const count = supplierRecords.filter((supplier) => supplier.category === category).length
-              const active = selectedCategory === category
+              const active = selectedCategories.includes(category)
               return (
                 <button
                   key={category}
                   type="button"
                   className={`supplier-filter${active ? ' active' : ''}`}
                   aria-pressed={active}
-                  onClick={() => setSelectedCategory(category)}
+                  onClick={() => setSelectedCategories([category])}
                 >
                   {labelForCategory(category)} <span>{count}</span>
                 </button>
@@ -186,7 +191,7 @@ export default function SuppliersPage() {
           </div>
 
           <p className="supplier-results" role="status" aria-live="polite">
-            {normalizedQuery || selectedCategory !== 'all'
+            {normalizedQuery || selectedCategories.length > 0
               ? `${filteredSuppliers.length} supplier${filteredSuppliers.length === 1 ? '' : 's'} found`
               : `${supplierRecords.length} supplier profiles`}
           </p>
@@ -201,7 +206,7 @@ export default function SuppliersPage() {
               <button
                 className="btn btn-ghost"
                 type="button"
-                onClick={() => { setQuery(''); setSelectedCategory('all') }}
+                onClick={() => { setQuery(''); setSelectedCategories([]) }}
               >
                 Reset filters
               </button>

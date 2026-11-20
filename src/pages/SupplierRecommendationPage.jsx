@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { submitForm } from '../lib/submitForm'
 
 const requestFromUrl = () => (
   new URLSearchParams(window.location.search).get('request') === 'onboarding'
@@ -22,6 +23,8 @@ export default function SupplierRecommendationPage() {
     email: '',
   })
   const [preview, setPreview] = useState(null)
+  const [status, setStatus] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     document.title = `${form.request === 'onboarding' ? 'Supplier onboarding' : 'Supplier recommendation'} | ZinoBNPL`
@@ -31,11 +34,30 @@ export default function SupplierRecommendationPage() {
     const { name, value } = event.target
     setForm((current) => ({ ...current, [name]: value }))
     setPreview(null)
+    setStatus('')
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
-    setPreview({ ...form })
+    setIsSubmitting(true)
+    setStatus('')
+    try {
+      await submitForm('supplier', {
+        request: form.request,
+        supplierName: form.company,
+        website: form.website,
+        products: form.products,
+        location: form.location,
+        contactName: form.contactName,
+        email: form.email,
+      })
+      setPreview({ ...form })
+      setStatus('Your supplier details have been submitted. Our team will be in touch.')
+    } catch (error) {
+      setStatus(error.message)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -129,17 +151,17 @@ export default function SupplierRecommendationPage() {
                 />
               </div>
             </div>
-            <button className="btn btn-primary" type="submit">Preview details</button>
-            <p className="supplier-recommend-note">
-              This form is a preview only. Details are not sent or saved.
-            </p>
+            <button className="btn btn-primary" type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Submitting…' : 'Submit supplier details'}
+            </button>
+            <p className="supplier-recommend-note" role="status" hidden={!status}>{status}</p>
           </form>
 
           <aside className="supplier-recommend-aside" aria-live="polite">
             {preview ? (
               <>
-                <p className="eyebrow">Local preview</p>
-                <h2>Review your details</h2>
+                <p className="eyebrow">Submission received</p>
+                <h2>Thank you for getting in touch.</h2>
                 <dl>
                   <div><dt>Request</dt><dd>{requestLabels[preview.request]}</dd></div>
                   <div><dt>Supplier or company</dt><dd>{preview.company}</dd></div>
@@ -149,7 +171,7 @@ export default function SupplierRecommendationPage() {
                   <div><dt>Your contact</dt><dd>{preview.contactName} · {preview.email}</dd></div>
                 </dl>
                 <p className="supplier-recommend-note">
-                  Nothing has been sent or saved. A submission service must be connected before this form can reach ZinoBNPL.
+                  Your information has been securely submitted to ZinoBNPL for review.
                 </p>
               </>
             ) : (

@@ -155,7 +155,18 @@ export default function Calculator() {
               </div>
               <div className="field">
                 <label htmlFor="freight">Freight + insurance</label>
-                <div className="input small"><input id="freight" inputMode="decimal" value={freight} onChange={(e) => setFreight(e.target.value)} /><em>%</em></div>
+                <div className="input small">
+                  <input
+                    id="freight"
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    inputMode="decimal"
+                    value={freight}
+                    onChange={(e) => setFreight(e.target.value)}
+                  />
+                  <em>%</em>
+                </div>
               </div>
               <div className="field">
                 <label htmlFor="days">Balance due</label>
