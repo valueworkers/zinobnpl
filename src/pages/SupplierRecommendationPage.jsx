@@ -1,5 +1,44 @@
 import { useEffect, useState } from 'react'
 import { submitForm } from '../lib/submitForm'
+import supplierRecords from '../data/suppliers.json'
+import countries from '../data/countries.json'
+
+const categoryLabels = {
+  building: 'Building materials',
+  hardware: 'Hardware & tools',
+  electronics: 'Electronics',
+  computer: 'Computer hardware',
+  manufactured: 'Manufactured goods',
+  industrial: 'Industrial',
+  furniture: 'Furniture',
+  mattresses: 'Mattresses',
+  flooring: 'Flooring',
+  lighting: 'Lighting',
+  home_appliances: 'Home appliances',
+  healthcare_medical: 'Healthcare & medical',
+  apparel_accessories: 'Apparel & accessories',
+  luggage_bags: 'Luggage & bags',
+  towels_home_textiles: 'Towels & home textiles',
+  stationery: 'Stationery',
+  strollers_toys: 'Strollers & toys',
+  packaging_materials: 'Packaging materials',
+  foodstuff: 'Foodstuff',
+  household_tissue: 'Household tissue',
+  hardware_fasteners: 'Hardware & fasteners',
+  printing_consumables: 'Printing consumables',
+  bicycle_lighting: 'Bicycle lighting',
+  decoration_materials: 'Decoration materials',
+  new_materials: 'New materials',
+  commercial_equipment: 'Commercial equipment',
+  pet_supplies: 'Pet supplies',
+  cosmetics: 'Cosmetics',
+  musical_instruments: 'Musical instruments',
+  sporting_goods: 'Sporting goods',
+  rubber_plastic_parts: 'Rubber & plastic parts',
+}
+
+const supplierCategories = [...new Set(supplierRecords.map((supplier) => supplier.category))]
+  .sort((a, b) => (categoryLabels[a] || a).localeCompare(categoryLabels[b] || b))
 
 const requestFromUrl = () => (
   new URLSearchParams(window.location.search).get('request') === 'onboarding'
@@ -18,7 +57,9 @@ export default function SupplierRecommendationPage() {
     company: '',
     website: '',
     products: '',
-    location: '',
+    country: 'China',
+    province: '',
+    address: '',
     contactName: '',
     email: '',
   })
@@ -47,7 +88,10 @@ export default function SupplierRecommendationPage() {
         supplierName: form.company,
         website: form.website,
         products: form.products,
-        location: form.location,
+        location: [form.address, form.province, form.country].filter(Boolean).join(', '),
+        country: form.country,
+        province: form.province,
+        address: form.address,
         contactName: form.contactName,
         email: form.email,
       })
@@ -106,46 +150,86 @@ export default function SupplierRecommendationPage() {
               />
             </div>
             <div className="field">
-              <label htmlFor="supplier-products">Products or categories</label>
-              <input
+              <label htmlFor="supplier-products">Product category</label>
+              <select
                 id="supplier-products"
                 name="products"
                 required
                 value={form.products}
                 onChange={updateField}
-              />
+              >
+                <option value="">Select a product category</option>
+                {supplierCategories.map((category) => (
+                  <option key={category} value={categoryLabels[category] || category}>
+                    {categoryLabels[category] || category}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="supplier-location-fields">
+              <div className="field">
+                <label htmlFor="supplier-country">Supplier country</label>
+                <select
+                  id="supplier-country"
+                  name="country"
+                  autoComplete="country-name"
+                  required
+                  value={form.country}
+                  onChange={updateField}
+                >
+                  {countries.map((country) => (
+                    <option key={country.code} value={country.name}>
+                      {country.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
+                <label htmlFor="supplier-province">Province / state</label>
+                <input
+                  id="supplier-province"
+                  name="province"
+                  required
+                  placeholder="e.g. Zhejiang"
+                  value={form.province}
+                  onChange={updateField}
+                />
+              </div>
             </div>
             <div className="field">
-              <label htmlFor="supplier-location">Supplier location</label>
+              <label htmlFor="supplier-address">Supplier address</label>
               <input
-                id="supplier-location"
-                name="location"
-                autoComplete="country-name"
+                id="supplier-address"
+                name="address"
                 required
-                value={form.location}
+                autoComplete="street-address"
+                placeholder="Street, city and postal address"
+                value={form.address}
                 onChange={updateField}
               />
             </div>
             <div className="supplier-recommend-contact">
               <div className="field">
-                <label htmlFor="supplier-contact-name">Your name</label>
+                <label htmlFor="supplier-contact-name">Contact person name</label>
                 <input
                   id="supplier-contact-name"
                   name="contactName"
                   autoComplete="name"
                   required
+                  placeholder="Full name"
                   value={form.contactName}
                   onChange={updateField}
                 />
               </div>
               <div className="field">
-                <label htmlFor="supplier-contact-email">Your email</label>
+                <label htmlFor="supplier-contact-email">Business email</label>
                 <input
                   id="supplier-contact-email"
                   name="email"
                   type="email"
                   autoComplete="email"
                   required
+                  placeholder="name@company.com"
                   value={form.email}
                   onChange={updateField}
                 />
@@ -167,7 +251,7 @@ export default function SupplierRecommendationPage() {
                   <div><dt>Supplier or company</dt><dd>{preview.company}</dd></div>
                   {preview.website && <div><dt>Website</dt><dd>{preview.website}</dd></div>}
                   <div><dt>Products or categories</dt><dd>{preview.products}</dd></div>
-                  <div><dt>Location</dt><dd>{preview.location}</dd></div>
+                  <div><dt>Location</dt><dd>{[preview.address, preview.province, preview.country].filter(Boolean).join(', ')}</dd></div>
                   <div><dt>Your contact</dt><dd>{preview.contactName} · {preview.email}</dd></div>
                 </dl>
                 <p className="supplier-recommend-note">

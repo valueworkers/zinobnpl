@@ -28,6 +28,14 @@ const countryCodesByName = {
   china: 'CN',
   india: 'IN',
   singapore: 'SG',
+  'united states': 'US',
+  'united states of america': 'US',
+  usa: 'US',
+  us: 'US',
+  'united kingdom': 'GB',
+  'united kingdom of great britain and northern ireland': 'GB',
+  uk: 'GB',
+  'great britain': 'GB',
 }
 
 export const registrationCountryCode = (name) => countryCodesByName[name.trim().toLowerCase()]
@@ -56,5 +64,17 @@ export const registrationRules = {
     placeholder: 'Enter 18-character USCC',
     error: 'Enter a valid 18-character Unified Social Credit Code.',
     validate: isValidUscc,
+  },
+  US: {
+    label: 'Employer Identification Number (EIN)',
+    placeholder: 'Enter EIN (XX-XXXXXXX)',
+    error: 'Enter a valid 9-digit EIN.',
+    validate: (value) => /^\d{9}$/.test(value),
+  },
+  GB: {
+    label: 'Unique Taxpayer Reference (UTR)',
+    placeholder: 'Enter 10-digit UTR',
+    error: 'Enter a valid 10-digit UK Unique Taxpayer Reference.',
+    validate: (value) => /^\d{10}$/.test(value),
   },
 }

@@ -15,10 +15,14 @@ const phoneCodes = countries.flatMap((country) => country.dialCodes.map((dialCod
   value: `${country.code}-${dialCode}`,
   dialCode,
   label: `${dialCode} (${country.code}) — ${country.name}`,
+  shortLabel: `${dialCode} (${country.code})`,
 })))
 
 export default function Apply() {
-  const [form, setForm] = useState({ biz: '', person: '', phoneCode: '', phone: '', country: '', registration: '', line: lines[0] })
+  const defaultPhoneCode = phoneCodes.find((option) => option.dialCode === '+91' && option.value.startsWith('IN-'))?.value || ''
+  const [form, setForm] = useState({ biz: '', person: '', phoneCode: defaultPhoneCode, phone: '', country: '', registration: '', line: lines[0] })
+  const [taxDocument, setTaxDocument] = useState(null)
+  const [identityDocument, setIdentityDocument] = useState(null)
   const [status, setStatus] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [registrationTouched, setRegistrationTouched] = useState(false)
@@ -28,8 +32,16 @@ export default function Apply() {
     setStatus('')
     if (k === 'registration') setRegistrationTouched(true)
   }
+  const setRegistrationCountry = (e) => {
+    setForm((current) => ({ ...current, country: e.target.value, registration: '' }))
+    setTaxDocument(null)
+    setIdentityDocument(null)
+    setRegistrationTouched(false)
+    setStatus('')
+  }
   const countryCode = registrationCountryCode(form.country)
   const registrationRule = registrationRules[countryCode]
+  const isUnsupportedRegistrationCountry = Boolean(form.country.trim() && !registrationRule)
   const registrationValue = form.registration.trim().toUpperCase().replace(/[\s-]/g, '')
   const registrationError = registrationRule && registrationTouched
     ? !registrationValue
@@ -38,6 +50,29 @@ export default function Apply() {
         ? ''
         : registrationRule.error
     : ''
+  const countryCodeName = countryCode || ''
+  const taxDocumentLabel = countryCodeName === 'IN'
+    ? 'Tax / GST Registration Certificate'
+    : 'Business Tax Registration Certificate'
+  const identityDocumentLabel = countryCodeName === 'IN'
+    ? 'Company or Director PAN Card'
+    : 'Company or Director ID Card'
+  const documentAccept = '.pdf,.jpg,.jpeg,.png'
+
+  const updateDocument = (setter) => (event) => {
+    const file = event.target.files?.[0] || null
+    setter(file)
+    setStatus('')
+  }
+
+  const validateDocument = (file) => {
+    if (!file) return 'Upload all required verification documents.'
+    if (file.size > 10 * 1024 * 1024) return 'Each document must be 10 MB or smaller.'
+    if (!['application/pdf', 'image/jpeg', 'image/png'].includes(file.type)) {
+      return 'Upload documents as PDF, JPG or PNG.'
+    }
+    return ''
+  }
 
   const submit = async (e) => {
     e.preventDefault()
@@ -52,6 +87,16 @@ export default function Apply() {
     }
     if (registrationRule && !registrationRule.validate(registrationValue)) {
       setStatus(registrationRule.error)
+      return
+    }
+    const taxDocumentError = validateDocument(taxDocument)
+    if (taxDocumentError) {
+      setStatus(taxDocumentError)
+      return
+    }
+    const identityDocumentError = validateDocument(identityDocument)
+    if (identityDocumentError) {
+      setStatus(identityDocumentError)
       return
     }
 
@@ -70,6 +115,16 @@ export default function Apply() {
         country: form.country,
         registration: registrationValue,
         creditLine: form.line,
+        taxDocument: {
+          name: taxDocument.name,
+          type: taxDocument.type,
+          size: taxDocument.size,
+        },
+        identityDocument: {
+          name: identityDocument.name,
+          type: identityDocument.type,
+          size: identityDocument.size,
+        },
       })
       setStatus('Your account application has been submitted. Our team will be in touch.')
     } catch (error) {
@@ -115,7 +170,7 @@ export default function Apply() {
                   >
                     <option value="">Code</option>
                     {phoneCodes.map((option) => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
+                      <option key={option.value} value={option.value} title={option.label}>{option.shortLabel}</option>
                     ))}
                   </select>
                   <input id="phone" type="tel" inputMode="tel" autoComplete="tel-national" placeholder="Phone number" value={form.phone} onChange={set('phone')} />
@@ -132,9 +187,12 @@ export default function Apply() {
                   placeholder="Search countries"
                   required
                   value={form.country}
-                  onChange={set('country')}
+                  onChange={setRegistrationCountry}
                 />
                 <datalist id="registration-countries">
+                  <option value="India" />
+                  <option value="USA" />
+                  <option value="UK" />
                   {countries.map((country) => <option key={country.code} value={country.name} />)}
                 </datalist>
               </div>
@@ -147,7 +205,7 @@ export default function Apply() {
                   id="registration"
                   autoCapitalize="characters"
                   autoComplete="off"
-                  placeholder={registrationRule?.placeholder || 'Your local registration ID'}
+                  placeholder={registrationRule?.placeholder || 'Enter your local registration ID'}
                   required={Boolean(registrationRule)}
                   aria-invalid={Boolean(registrationError)}
                   aria-describedby={registrationError ? 'registration-error' : undefined}
@@ -157,8 +215,47 @@ export default function Apply() {
                 />
               </div>
             </div>
+            {form.country.trim() && (
+              <fieldset className="verification-documents">
+                <legend>Company & tax verification</legend>
+                <p>Upload both documents for the 48-hour approval review.</p>
+                <div className="verification-document-grid">
+                  <label className="document-upload" htmlFor="tax-document">
+                    <span>{taxDocumentLabel} <strong>*</strong></span>
+                    <input
+                      id="tax-document"
+                      className="document-file-input"
+                      type="file"
+                      accept={documentAccept}
+                      required
+                      onChange={updateDocument(setTaxDocument)}
+                    />
+                    <span className="document-file-button">{taxDocument ? 'Change file' : 'Choose file'}</span>
+                    <small>{taxDocument ? taxDocument.name : 'PDF, JPG or PNG · max 10 MB'}</small>
+                  </label>
+                  <label className="document-upload" htmlFor="identity-document">
+                    <span>{identityDocumentLabel} <strong>*</strong></span>
+                    <input
+                      id="identity-document"
+                      className="document-file-input"
+                      type="file"
+                      accept={documentAccept}
+                      required
+                      onChange={updateDocument(setIdentityDocument)}
+                    />
+                    <span className="document-file-button">{identityDocument ? 'Change file' : 'Choose file'}</span>
+                    <small>{identityDocument ? identityDocument.name : 'PDF, JPG or PNG · max 10 MB'}</small>
+                  </label>
+                </div>
+              </fieldset>
+            )}
             <div className="registration-error-slot" aria-live="polite">
               {registrationError && <p className="field-error" id="registration-error" role="alert">{registrationError}</p>}
+              {isUnsupportedRegistrationCountry && (
+                <p className="registration-notice">
+                  <strong>Need help?</strong> Please contact us and we’ll add your country’s tax ID format.
+                </p>
+              )}
             </div>
             <div className="f">
               <label htmlFor="line">Credit line needed (USD)</label>

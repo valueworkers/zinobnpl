@@ -43,6 +43,8 @@ const buildSubmission = (formType, data) => {
     const country = readText(data, 'country', { required: true, max: 100 })
     const registration = readText(data, 'registration', { max: 100 })
     const creditLine = readText(data, 'creditLine', { required: true, max: 100 })
+    const taxDocument = data.taxDocument
+    const identityDocument = data.identityDocument
     const countryCode = registrationCountryCode(country || '')
     const rule = registrationRules[countryCode]
     const normalizedRegistration = (registration || '').toUpperCase().replace(/[\s-]/g, '')
@@ -56,6 +58,12 @@ const buildSubmission = (formType, data) => {
       registration === null ||
       creditLine === null ||
       !['Up to USD 10,000', 'USD 10,000–25,000', 'USD 25,000–100,000', 'Above USD 100,000'].includes(creditLine) ||
+      !taxDocument ||
+      typeof taxDocument.name !== 'string' ||
+      !taxDocument.name.trim() ||
+      !identityDocument ||
+      typeof identityDocument.name !== 'string' ||
+      !identityDocument.name.trim() ||
       (rule && (!normalizedRegistration || !rule.validate(normalizedRegistration)))
     ) return null
 
@@ -75,7 +83,10 @@ const buildSubmission = (formType, data) => {
     const supplierName = readText(data, 'supplierName', { required: true, max: 200 })
     const website = readText(data, 'website', { max: 500 })
     const products = readText(data, 'products', { required: true, max: 500 })
-    const location = readText(data, 'location', { required: true, max: 100 })
+    const location = readText(data, 'location', { required: true, max: 500 })
+    const country = readText(data, 'country', { required: true, max: 100 })
+    const province = readText(data, 'province', { required: true, max: 100 })
+    const address = readText(data, 'address', { required: true, max: 500 })
     const contactName = readText(data, 'contactName', { required: true, max: 200 })
     const email = readText(data, 'email', { required: true, max: 254 })
 
@@ -86,6 +97,9 @@ const buildSubmission = (formType, data) => {
       !isValidWebsite(website) ||
       products === null ||
       location === null ||
+      country === null ||
+      province === null ||
+      address === null ||
       contactName === null ||
       email === null ||
       !isEmail(email)
@@ -97,6 +111,9 @@ const buildSubmission = (formType, data) => {
         : 'Recommend an existing supplier',
       supplier_name: supplierName,
       products,
+      supplier_country: country,
+      supplier_province: province,
+      supplier_address: address,
       supplier_location: location,
       contact_name: contactName,
       contact_email: email,

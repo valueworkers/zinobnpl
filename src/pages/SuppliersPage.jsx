@@ -123,15 +123,15 @@ export default function SuppliersPage() {
     <main id="top" className="suppliers-page">
       <section className="wrap suppliers-hero">
         <div>
-          <p className="eyebrow">The supplier catalogue</p>
-          <h1>Find the right partner for your next order.</h1>
+          <p className="eyebrow">Verified supplier network</p>
+          <h1>Build your next order with trusted partners.</h1>
           <p className="suppliers-lede">
-            Explore verified manufacturers across the categories wholesale buyers need.
-            Browse supplier profiles, locations and product capabilities.
+            Discover established manufacturers, compare capabilities and source with confidence.
+            Explore verified suppliers across the categories your business needs.
           </p>
           <div className="supplier-hero-actions">
-            <a className="btn btn-primary" href="/recommend-supplier?request=onboarding">
-              Start supplier onboarding
+            <a className="btn btn-primary" href="#supplier-invite">
+              Join the supplier network
             </a>
           </div>
         </div>
@@ -256,19 +256,19 @@ export default function SuppliersPage() {
         <div className="wrap">
           <div className="supplier-invite-card">
             <div className="supplier-invite-copy">
-              <p className="eyebrow">Grow the supplier network</p>
-              <h2 id="supplier-invite-title">Have a supplier you’d like to see here?</h2>
+              <p className="eyebrow">Supplier partnerships</p>
+              <h2 id="supplier-invite-title">Grow the supplier network.</h2>
               <p>
-                Recommend a supplier for the catalogue or introduce your own business for onboarding
-                using our short supplier form.
+                Introduce your business for supplier onboarding, or recommend an established supplier
+                you would like ZinoBNPL to evaluate.
               </p>
             </div>
             <div className="supplier-invite-actions">
-              <a className="btn btn-primary" href="/recommend-supplier?request=recommendation">
-                Recommend a supplier
-              </a>
-              <a className="btn btn-ghost" href="/recommend-supplier?request=onboarding">
+              <a className="btn btn-primary" href="/recommend-supplier?request=onboarding">
                 Start onboarding
+              </a>
+              <a className="btn btn-ghost" href="/recommend-supplier?request=recommendation">
+                Recommend a supplier
               </a>
             </div>
           </div>
