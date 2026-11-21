@@ -259,16 +259,13 @@ export default function SuppliersPage() {
               <p className="eyebrow">Supplier partnerships</p>
               <h2 id="supplier-invite-title">Grow the supplier network.</h2>
               <p>
-                Introduce your business for supplier onboarding, or recommend an established supplier
-                you would like ZinoBNPL to evaluate.
+                Ready to join our network? Share your business details to get started, or recommend
+                another supplier using the form.
               </p>
             </div>
             <div className="supplier-invite-actions">
               <a className="btn btn-primary" href="/recommend-supplier?request=onboarding">
-                Start onboarding
-              </a>
-              <a className="btn btn-ghost" href="/recommend-supplier?request=recommendation">
-                Recommend a supplier
+                Become a supplier
               </a>
             </div>
           </div>
