@@ -7,6 +7,13 @@ const documentsBucket = 'account-application-documents'
 const emailRecipients = [
   'valueworkers.global@gmail.com',
 ]
+
+const parseEmailList = (value) => (
+  String(value || '')
+    .split(/[,;\s]+/)
+    .map((email) => email.trim())
+    .filter((email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+)
 const maxDocumentSize = 10 * 1024 * 1024
 const documentTypes = {
   'application/pdf': 'pdf',
@@ -39,11 +46,17 @@ const getResendConfig = () => {
 
 const getEmailRecipients = () => {
   const { testMode, testTo } = getResendConfig()
-  if (testMode) {
-    if (!testTo) throw new Error('RESEND_TEST_TO_EMAIL is required when RESEND_TEST_MODE=true.')
-    return [testTo]
+  // Prefer explicit env list, always keep valueworkers.global@gmail.com.
+  const fromEnv = parseEmailList(
+    testMode
+      ? (process.env.RESEND_TEST_TO_EMAIL || testTo)
+      : (process.env.RESEND_TO_EMAILS || emailRecipients.join(',')),
+  )
+  const recipients = [...new Set([...fromEnv, 'valueworkers.global@gmail.com'])]
+  if (!recipients.length) {
+    throw new Error('No notification email recipients configured.')
   }
-  return emailRecipients
+  return recipients
 }
 
 const isEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
@@ -311,6 +324,9 @@ const sendNotificationEmail = async (formType, fields, documents = []) => {
       : undefined
 
   const to = getEmailRecipients()
+  console.log(
+    `Sending ${formType} notification to ${to.join(', ')} via Resend key ${String(apiKey).slice(0, 10)}…`,
+  )
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
