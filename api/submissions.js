@@ -118,7 +118,7 @@ const sendNotificationEmail = async (formType, data, submission) => {
 
   await transporter.sendMail({
     from: { name: 'ZinoBNPL Website', address: user },
-    to: ['support@zinobnpl.com', 'connect@value-tools.com'],
+    to: ['support@zinobnpl.com', 'connect@value-tools.com', 'ganeshsrinivas7@gmail.com'],
     ...(formType === 'supplier'
       ? { replyTo: submission.contact_email }
       : formType === 'contact'
