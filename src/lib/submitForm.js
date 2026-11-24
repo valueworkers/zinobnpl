@@ -71,4 +71,5 @@ export async function submitForm(formType, data, { files } = {}) {
   if (!result || result.submitted !== true) {
     throw new Error('We could not confirm your submission. Please contact support.')
   }
+  return result
 }

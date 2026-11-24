@@ -42,8 +42,9 @@ const labelForCategory = (category) => categoryLabels[category] || category
 const categories = [...new Set(supplierRecords.map((supplier) => supplier.category))]
   .sort((a, b) => labelForCategory(a).localeCompare(labelForCategory(b)))
 
+const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || '').replace(/\/$/, '')
 const supplierImage = (imagePath) => (
-  `https://bjdnhjlzlsajrgvdpnxm.supabase.co/storage/v1/render/image/public/supplier-images/${imagePath}?width=760&quality=65`
+  `${supabaseUrl}/storage/v1/render/image/public/supplier-images/${imagePath}?width=760&quality=65`
 )
 
 function SupplierCard({ supplier }) {

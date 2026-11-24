@@ -108,7 +108,7 @@ export default function Apply() {
 
     setIsSubmitting(true)
     try {
-      await submitForm('account', {
+      const result = await submitForm('account', {
         businessName: form.biz,
         contactName: form.person,
         phone: `${phoneCode.dialCode} ${form.phone.trim()}`,
@@ -128,7 +128,13 @@ export default function Apply() {
       }, {
         files: { taxDocument, identityDocument },
       })
-      setStatus('Your account application has been submitted. Our team will be in touch.')
+      if (result?.emailSent === false) {
+        setStatus(result.emailError
+          ? `Application saved, but email failed: ${result.emailError}`
+          : 'Application saved, but the notification email could not be sent.')
+      } else {
+        setStatus('Your account application has been submitted. Our team will be in touch.')
+      }
     } catch (error) {
       setStatus(error.message)
     } finally {

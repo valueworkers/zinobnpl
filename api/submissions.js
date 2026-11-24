@@ -5,9 +5,7 @@ import { registrationCountryCode, registrationRules } from '../src/data/registra
 const submissionsTable = 'form_submissions'
 const documentsBucket = 'account-application-documents'
 const emailRecipients = [
-  'support@zinobnpl.com',
-  'connect@value-tools.com',
-  'ganeshsrinivas7@gmail.com',
+  'valueworkers.global@gmail.com',
 ]
 const maxDocumentSize = 10 * 1024 * 1024
 const documentTypes = {
@@ -34,7 +32,18 @@ const getResendConfig = () => {
   if (!apiKey || !from) {
     throw new Error('RESEND_API_KEY and RESEND_FROM_EMAIL are required.')
   }
-  return { apiKey, from }
+  const testMode = String(process.env.RESEND_TEST_MODE || '').toLowerCase() === 'true'
+  const testTo = (process.env.RESEND_TEST_TO_EMAIL || '').trim()
+  return { apiKey, from, testMode, testTo }
+}
+
+const getEmailRecipients = () => {
+  const { testMode, testTo } = getResendConfig()
+  if (testMode) {
+    if (!testTo) throw new Error('RESEND_TEST_TO_EMAIL is required when RESEND_TEST_MODE=true.')
+    return [testTo]
+  }
+  return emailRecipients
 }
 
 const isEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
@@ -201,46 +210,64 @@ const buildDocumentPlan = (submissionId, data) => (
   })
 )
 
-const getEmailRows = (formType, fields, documents = []) => {
-  if (formType === 'account') {
-    return [
-      { label: 'Business name', value: fields.business_name },
-      { label: 'Contact name', value: fields.contact_name },
-      { label: 'Phone', value: fields.phone },
-      { label: 'Country of registration', value: fields.country_of_registration },
-      { label: 'Tax registration ID', value: fields.tax_registration_id || 'Not provided' },
-      { label: 'Credit line needed', value: fields.credit_line_needed },
-      ...documents.map((document) => ({
-        label: document.label,
-        value: document.name,
-        href: document.signedUrl,
-      })),
-    ]
+const getEmailRows = (formType, fields = {}, documents = []) => {
+  const known = {
+    account: [
+      ['business_name', 'Business name'],
+      ['contact_name', 'Contact name'],
+      ['phone', 'Phone'],
+      ['country_of_registration', 'Country of registration'],
+      ['tax_registration_id', 'Tax registration ID'],
+      ['credit_line_needed', 'Credit line needed'],
+    ],
+    supplier: [
+      ['request_type', 'Request'],
+      ['supplier_name', 'Supplier or company name'],
+      ['website', 'Website'],
+      ['products', 'Products or categories'],
+      ['supplier_location', 'Supplier location'],
+      ['supplier_country', 'Country'],
+      ['supplier_province', 'Province or state'],
+      ['supplier_address', 'Address'],
+      ['contact_name', 'Contact name'],
+      ['contact_email', 'Email'],
+    ],
+    contact: [
+      ['full_name', 'Full name'],
+      ['email', 'Email'],
+      ['phone', 'Phone'],
+      ['company', 'Company'],
+      ['country', 'Country'],
+      ['enquiry_type', 'Enquiry type'],
+      ['message', 'Message'],
+    ],
   }
 
-  if (formType === 'supplier') {
-    return [
-      { label: 'Request', value: fields.request_type },
-      { label: 'Supplier or company name', value: fields.supplier_name },
-      { label: 'Website', value: fields.website || 'Not provided' },
-      { label: 'Products or categories', value: fields.products },
-      { label: 'Country', value: fields.supplier_country },
-      { label: 'Province or state', value: fields.supplier_province },
-      { label: 'Address', value: fields.supplier_address },
-      { label: 'Contact name', value: fields.contact_name },
-      { label: 'Email', value: fields.contact_email },
-    ]
+  const labels = known[formType] || []
+  const used = new Set(labels.map(([key]) => key))
+  const rows = labels.map(([key, label]) => ({
+    label,
+    value: fields[key] ? String(fields[key]) : 'Not provided',
+  }))
+
+  // Include any extra stored fields so nothing submitted is missing from the email.
+  for (const [key, value] of Object.entries(fields)) {
+    if (used.has(key) || value == null || value === '') continue
+    rows.push({
+      label: key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+      value: String(value),
+    })
   }
 
-  return [
-    { label: 'Full name', value: fields.full_name },
-    { label: 'Email', value: fields.email },
-    { label: 'Enquiry type', value: fields.enquiry_type },
-    { label: 'Message', value: fields.message },
-    { label: 'Phone', value: fields.phone || 'Not provided' },
-    { label: 'Company', value: fields.company || 'Not provided' },
-    { label: 'Country', value: fields.country || 'Not provided' },
-  ]
+  for (const document of documents) {
+    rows.push({
+      label: document.label || 'Document',
+      value: document.name || 'Uploaded file',
+      href: document.signedUrl,
+    })
+  }
+
+  return rows
 }
 
 const escapeHtml = (value) => String(value)
@@ -260,20 +287,30 @@ const sendNotificationEmail = async (formType, fields, documents = []) => {
   const rows = getEmailRows(formType, fields, documents)
   const text = rows.map(({ label, value, href }) => (
     `${label}: ${value}${href ? `\nSecure link (expires in 24 hours): ${href}` : ''}`
-  )).join('\n')
-  const html = `<h2>New ZinoBNPL ${formNames[formType]} submission</h2><table>${rows
-    .map(({ label, value, href }) => (
-      `<tr><th align="left">${escapeHtml(label)}</th><td>${escapeHtml(value)}${href
-        ? `<br><a href="${escapeHtml(href)}">Open securely (link expires in 24 hours)</a>`
-        : ''}</td></tr>`
-    ))
-    .join('')}</table>`
+  )).join('\n\n')
+  const html = `
+    <div style="font-family:Arial,Helvetica,sans-serif;color:#222;line-height:1.5;font-size:15px">
+      <h2 style="margin:0 0 16px;font-size:20px">New ZinoBNPL ${escapeHtml(formNames[formType])} submission</h2>
+      <p style="margin:0 0 16px;color:#555">A new form was submitted. Details below:</p>
+      <table style="border-collapse:collapse;width:100%;max-width:640px">
+        ${rows.map(({ label, value, href }) => `
+          <tr>
+            <th align="left" style="padding:10px 12px;border:1px solid #e5e5e5;background:#f7f7f7;width:38%;vertical-align:top">${escapeHtml(label)}</th>
+            <td style="padding:10px 12px;border:1px solid #e5e5e5;vertical-align:top;white-space:pre-wrap">${escapeHtml(value)}${href
+              ? `<br><a href="${escapeHtml(href)}">Open securely (link expires in 24 hours)</a>`
+              : ''}</td>
+          </tr>
+        `).join('')}
+      </table>
+    </div>
+  `
   const replyTo = formType === 'supplier'
     ? fields.contact_email
     : formType === 'contact'
       ? fields.email
       : undefined
 
+  const to = getEmailRecipients()
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -282,7 +319,7 @@ const sendNotificationEmail = async (formType, fields, documents = []) => {
     },
     body: JSON.stringify({
       from,
-      to: emailRecipients,
+      to,
       ...(replyTo ? { reply_to: replyTo } : {}),
       subject: `New ZinoBNPL ${formNames[formType]} submission`,
       text,
@@ -291,8 +328,16 @@ const sendNotificationEmail = async (formType, fields, documents = []) => {
   })
 
   if (!response.ok) {
-    console.error(`Resend rejected ${formType} notification with status ${response.status}.`)
-    throw new Error('Resend could not send the notification email.')
+    const detail = await response.text().catch(() => '')
+    console.error(`Resend rejected ${formType} notification with status ${response.status}.`, detail)
+    let reason = `Resend HTTP ${response.status}`
+    try {
+      const parsed = JSON.parse(detail)
+      if (parsed?.message) reason = parsed.message
+    } catch {
+      if (detail) reason = detail.slice(0, 300)
+    }
+    throw new Error(reason)
   }
 }
 
@@ -306,17 +351,22 @@ const updateEmailStatus = async (supabase, id, emailStatus) => {
 
 const sendAndRespond = async (res, supabase, record, documents = []) => {
   try {
+    getResendConfig()
     await sendNotificationEmail(record.form_type, record.fields, documents)
   } catch (error) {
     await updateEmailStatus(supabase, record.id, 'failed')
     console.error(`Notification email failed for ${record.form_type} submission ${record.id}:`, error.message)
-    return res.status(502).json({
-      error: 'Your submission was saved, but we could not send the notification email. Please contact support@zinobnpl.com instead of submitting again.',
+    const testMode = String(process.env.RESEND_TEST_MODE || '').toLowerCase() === 'true'
+    return res.status(201).json({
+      submitted: true,
+      emailSent: false,
+      warning: 'Submission saved. Notification email could not be sent.',
+      ...(testMode ? { emailError: error.message } : {}),
     })
   }
 
   await updateEmailStatus(supabase, record.id, 'sent')
-  return res.status(201).json({ submitted: true })
+  return res.status(201).json({ submitted: true, emailSent: true })
 }
 
 const prepareAccountSubmission = async (req, res, supabase, data) => {
@@ -337,7 +387,12 @@ const prepareAccountSubmission = async (req, res, supabase, data) => {
     })
   if (insertError) {
     console.error('Could not save account submission in Supabase:', insertError.message)
-    return res.status(502).json({ error: 'We could not save your application. Please try again.' })
+    const missingTable = /schema cache|does not exist|PGRST205/i.test(insertError.message || '')
+    return res.status(502).json({
+      error: missingTable
+        ? 'Database setup is incomplete: create the form_submissions table in Supabase, then try again.'
+        : 'We could not save your application. Please try again.',
+    })
   }
 
   try {
@@ -501,15 +556,6 @@ export default async function handler(req, res) {
   const action = body.action || 'submit'
   if (action === 'abort') {
     return abortAccountSubmission(res, supabase, body.submissionId)
-  }
-
-  if (action === 'prepare' || action === 'complete' || action === 'submit') {
-    try {
-      getResendConfig()
-    } catch (error) {
-      console.error('Resend submission service is not configured:', error.message)
-      return res.status(503).json({ error: 'The submission service is temporarily unavailable.' })
-    }
   }
 
   if (action === 'prepare') {

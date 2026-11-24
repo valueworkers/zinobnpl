@@ -2,12 +2,26 @@ import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import submissionsHandler from './api/submissions.js'
 
-export default defineConfig(({ command, mode }) => {
+const applyLocalEnv = (mode) => {
   const env = loadEnv(mode, process.cwd(), '')
-  if (command === 'serve') {
-    if (env.WIX_API_KEY) process.env.WIX_API_KEY = env.WIX_API_KEY
-    if (env.WIX_SITE_ID) process.env.WIX_SITE_ID = env.WIX_SITE_ID
+  for (const key of [
+    'WIX_API_KEY',
+    'WIX_SITE_ID',
+    'VITE_SUPABASE_URL',
+    'SUPABASE_URL',
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'RESEND_API_KEY',
+    'RESEND_FROM_EMAIL',
+    'RESEND_TEST_MODE',
+    'RESEND_TEST_TO_EMAIL',
+  ]) {
+    if (env[key]) process.env[key] = env[key]
   }
+  return env
+}
+
+export default defineConfig(({ command, mode }) => {
+  if (command === 'serve') applyLocalEnv(mode)
 
   return {
     plugins: [
@@ -16,6 +30,8 @@ export default defineConfig(({ command, mode }) => {
         name: 'local-wix-submissions',
         configureServer(server) {
           server.middlewares.use('/api/submissions', (req, res) => {
+            // Reload .env on every request so key changes apply without a full restart.
+            applyLocalEnv(mode)
             if (req.method !== 'POST') {
               res.statusCode = 405
               res.setHeader('Allow', 'POST')
