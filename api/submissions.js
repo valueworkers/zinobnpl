@@ -8,13 +8,21 @@ const formIds = {
 }
 
 const isEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-const getWixErrorCode = async (response) => {
+const getWixErrorInfo = async (response) => {
   try {
     const body = await response.json()
-    const code = body?.details?.applicationError?.code || body?.code || body?.errorCode
-    return typeof code === 'string' && /^[A-Za-z0-9_.-]{1,80}$/.test(code) ? code : null
+    const applicationError = body?.details?.applicationError
+    const rawCode = applicationError?.code || body?.code || body?.errorCode
+    const code = typeof rawCode === 'string' && /^[A-Za-z0-9_.-]{1,80}$/.test(rawCode)
+      ? rawCode
+      : null
+    const rawMessage = applicationError?.description || applicationError?.message || body?.message
+    const message = typeof rawMessage === 'string'
+      ? rawMessage.replace(/[\r\n\t]+/g, ' ').slice(0, 300)
+      : null
+    return { code, message }
   } catch {
-    return null
+    return { code: null, message: null }
   }
 }
 
@@ -310,11 +318,15 @@ export default async function handler(req, res) {
   }
 
   if (!wixResponse.ok) {
-    const errorCode = await getWixErrorCode(wixResponse)
-    console.error(`Wix rejected ${formType} submission with status ${wixResponse.status}${errorCode ? ` (${errorCode})` : ''}.`)
+    const wixError = await getWixErrorInfo(wixResponse)
+    console.error(
+      `Wix rejected ${formType} submission with status ${wixResponse.status}` +
+      `${wixError.code ? ` (${wixError.code})` : ''}` +
+      `${wixError.message ? `: ${wixError.message}` : '.'}`,
+    )
     return res.status(502).json({
       error: 'We could not submit your details. Please try again.',
-      reference: errorCode,
+      reference: wixError.code,
     })
   }
 
