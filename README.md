@@ -28,3 +28,5 @@ Configure these Vercel environment variables:
 - `RESEND_FROM_EMAIL` (a sender address verified in Resend)
 
 The account-application email contains 24-hour signed links to its documents. Supplier and contact submissions are also stored in Supabase and emailed through Resend.
+
+Supplier catalogue images use their own Supabase project. Set `VITE_SUPPLIER_IMAGES_SUPABASE_URL` only if you move the public `supplier-images` bucket; it defaults to the existing image project and should not be replaced with the form-submissions project URL.
