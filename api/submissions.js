@@ -1,4 +1,5 @@
 import { registrationCountryCode, registrationRules } from '../src/data/registrationRules.js'
+import nodemailer from 'nodemailer'
 
 const formIds = {
   account: 'd71694ac-4bad-445f-a0f9-c167fd1f49e6',
@@ -31,6 +32,96 @@ const isValidWebsite = (value) => {
   } catch {
     return false
   }
+}
+
+const getEmailFields = (formType, data, submission) => {
+  if (formType === 'account') {
+    return {
+      'Business name': submission.business_name,
+      'Contact name': submission.contact_name,
+      Phone: submission.phone,
+      'Country of registration': submission.country_of_registration,
+      'Tax registration ID': submission.tax_registration_id || 'Not provided',
+      'Credit line needed': submission.credit_line_needed,
+      'Tax registration document file name': data.taxDocument.name.trim(),
+      'Identity document file name': data.identityDocument.name.trim(),
+    }
+  }
+
+  if (formType === 'supplier') {
+    return {
+      Request: submission.request_type,
+      'Supplier or company name': submission.supplier_name,
+      Website: submission.website || 'Not provided',
+      'Products or categories': submission.products,
+      Country: submission.supplier_country,
+      'Province or state': submission.supplier_province,
+      Address: submission.supplier_address,
+      'Contact name': submission.contact_name,
+      Email: submission.contact_email,
+    }
+  }
+
+  if (formType === 'contact') {
+    return {
+      'Full name': submission.full_name,
+      Email: submission.email,
+      'Enquiry type': submission.enquiry_type,
+      Message: submission.message,
+      Phone: submission.phone || 'Not provided',
+      Company: submission.company || 'Not provided',
+      Country: submission.country || 'Not provided',
+    }
+  }
+
+  return null
+}
+
+const escapeHtml = (value) => String(value)
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;')
+
+const sendNotificationEmail = async (formType, data, submission) => {
+  const host = process.env.SMTP_HOST
+  const port = Number(process.env.SMTP_PORT || 465)
+  const user = process.env.SMTP_USER
+  const password = process.env.SMTP_PASSWORD
+  if (!host || !Number.isInteger(port) || port < 1 || port > 65535 || !user || !password) {
+    throw new Error('Email notification is not configured.')
+  }
+
+  const fields = getEmailFields(formType, data, submission)
+  const formNames = {
+    account: 'Open Account',
+    supplier: 'Supplier',
+    contact: 'Contact Us',
+  }
+  const formName = formNames[formType]
+  const rows = Object.entries(fields)
+  const transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass: password },
+  })
+
+  await transporter.sendMail({
+    from: { name: 'ZinoBNPL Website', address: user },
+    to: 'support@zinobnpl.com',
+    ...(formType === 'supplier'
+      ? { replyTo: submission.contact_email }
+      : formType === 'contact'
+        ? { replyTo: submission.email }
+        : {}),
+    subject: `New ZinoBNPL ${formName} submission`,
+    text: rows.map(([label, value]) => `${label}: ${value}`).join('\n'),
+    html: `<h2>New ZinoBNPL ${formName} submission</h2><table>${rows
+      .map(([label, value]) => `<tr><th align="left">${escapeHtml(label)}</th><td>${escapeHtml(value)}</td></tr>`)
+      .join('')}</table>`,
+  })
 }
 
 const buildSubmission = (formType, data) => {
@@ -181,6 +272,15 @@ export default async function handler(req, res) {
   const submission = buildSubmission(formType, data)
   if (!submission) return res.status(400).json({ error: 'Check the required fields and try again.' })
 
+  if (['account', 'supplier', 'contact'].includes(formType)) {
+    const smtpHost = process.env.SMTP_HOST
+    const smtpPort = Number(process.env.SMTP_PORT || 465)
+    if (!smtpHost || !Number.isInteger(smtpPort) || smtpPort < 1 || smtpPort > 65535 || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+      console.error('Submission email is not configured: SMTP_HOST, SMTP_USER, and SMTP_PASSWORD are required; SMTP_PORT must be valid.')
+      return res.status(503).json({ error: 'The submission service is temporarily unavailable.' })
+    }
+  }
+
   const apiKey = process.env.WIX_API_KEY
   const siteId = process.env.WIX_SITE_ID
   if (!apiKey || !siteId) {
@@ -216,6 +316,17 @@ export default async function handler(req, res) {
       error: 'We could not submit your details. Please try again.',
       reference: errorCode,
     })
+  }
+
+  if (['account', 'supplier', 'contact'].includes(formType)) {
+    try {
+      await sendNotificationEmail(formType, data, submission)
+    } catch (error) {
+      console.error(`Email notification failed for ${formType}:`, error.message)
+      return res.status(502).json({
+        error: 'Your submission was saved, but we could not send the notification email. Please contact support@zinobnpl.com instead of submitting again.',
+      })
+    }
   }
 
   return res.status(201).json({ submitted: true })
