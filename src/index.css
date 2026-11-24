@@ -168,10 +168,9 @@ section{padding-block:5rem}
 .input span{padding-left:1rem;font-weight:700;color:var(--muted)}
 .input input{flex:1;min-width:0;border:0;background:transparent;color:var(--fg);font:700 1.35rem var(--f-display);padding:.8rem 1rem .8rem .5rem;outline:none;font-variant-numeric:tabular-nums}
 .input.small input{font-size:1.05rem;padding:.6rem .5rem}
+.input.small input[type=number]{appearance:auto}
+.input.small input[type=number]::-webkit-inner-spin-button,.input.small input[type=number]::-webkit-outer-spin-button{opacity:1}
 .input.small em{font-style:normal;padding-right:1rem;font-weight:700;color:var(--muted)}
-.chips{display:flex;flex-wrap:wrap;gap:.5rem}
-.chip{font:500 .88rem var(--f-body);padding:.45rem .9rem;border-radius:999px;border:1.5px solid var(--line);background:transparent;color:var(--fg);cursor:pointer}
-.chip:hover{border-color:var(--fg)}
 fieldset{border:0;padding:0;margin:0 0 1.25rem}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
 .seg label{display:block;cursor:pointer}
