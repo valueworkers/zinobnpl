@@ -1,30 +1,43 @@
+import { randomUUID } from 'node:crypto'
+import { createClient } from '@supabase/supabase-js'
 import { registrationCountryCode, registrationRules } from '../src/data/registrationRules.js'
-import nodemailer from 'nodemailer'
 
-const formIds = {
-  account: 'd71694ac-4bad-445f-a0f9-c167fd1f49e6',
-  supplier: '6ffdc3db-60de-40fa-9566-32438d22508e',
-  contact: 'b0f5e829-2a12-4316-8ea3-864c9d05903d',
+const submissionsTable = 'form_submissions'
+const documentsBucket = 'account-application-documents'
+const emailRecipients = [
+  'support@zinobnpl.com',
+  'connect@value-tools.com',
+  'ganeshsrinivas7@gmail.com',
+]
+const maxDocumentSize = 10 * 1024 * 1024
+const documentTypes = {
+  'application/pdf': 'pdf',
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+}
+
+const createSupabaseAdmin = () => {
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !serviceRoleKey) {
+    throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required.')
+  }
+
+  return createClient(url, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+}
+
+const getResendConfig = () => {
+  const apiKey = process.env.RESEND_API_KEY
+  const from = process.env.RESEND_FROM_EMAIL
+  if (!apiKey || !from) {
+    throw new Error('RESEND_API_KEY and RESEND_FROM_EMAIL are required.')
+  }
+  return { apiKey, from }
 }
 
 const isEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-const getWixErrorInfo = async (response) => {
-  try {
-    const body = await response.json()
-    const applicationError = body?.details?.applicationError
-    const rawCode = applicationError?.code || body?.code || body?.errorCode
-    const code = typeof rawCode === 'string' && /^[A-Za-z0-9_.-]{1,80}$/.test(rawCode)
-      ? rawCode
-      : null
-    const rawMessage = applicationError?.description || applicationError?.message || body?.message
-    const message = typeof rawMessage === 'string'
-      ? rawMessage.replace(/[\r\n\t]+/g, ' ').slice(0, 300)
-      : null
-    return { code, message }
-  } catch {
-    return { code: null, message: null }
-  }
-}
 
 const readText = (data, key, { required = false, max = 500 } = {}) => {
   const value = typeof data[key] === 'string' ? data[key].trim() : ''
@@ -42,95 +55,16 @@ const isValidWebsite = (value) => {
   }
 }
 
-const getEmailFields = (formType, data, submission) => {
-  if (formType === 'account') {
-    return {
-      'Business name': submission.business_name,
-      'Contact name': submission.contact_name,
-      Phone: submission.phone,
-      'Country of registration': submission.country_of_registration,
-      'Tax registration ID': submission.tax_registration_id || 'Not provided',
-      'Credit line needed': submission.credit_line_needed,
-      'Tax registration document file name': data.taxDocument.name.trim(),
-      'Identity document file name': data.identityDocument.name.trim(),
-    }
-  }
-
-  if (formType === 'supplier') {
-    return {
-      Request: submission.request_type,
-      'Supplier or company name': submission.supplier_name,
-      Website: submission.website || 'Not provided',
-      'Products or categories': submission.products,
-      Country: data.country.trim(),
-      'Province or state': data.province.trim(),
-      Address: data.address.trim(),
-      'Contact name': submission.contact_name,
-      Email: submission.contact_email,
-    }
-  }
-
-  if (formType === 'contact') {
-    return {
-      'Full name': submission.full_name,
-      Email: submission.email,
-      'Enquiry type': submission.enquiry_type,
-      Message: submission.message,
-      Phone: submission.phone || 'Not provided',
-      Company: submission.company || 'Not provided',
-      Country: submission.country || 'Not provided',
-    }
-  }
-
-  return null
-}
-
-const escapeHtml = (value) => String(value)
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;')
-  .replace(/'/g, '&#39;')
-
-const sendNotificationEmail = async (formType, data, submission) => {
-  const host = process.env.SMTP_HOST
-  const port = Number(process.env.SMTP_PORT || 465)
-  const user = process.env.SMTP_USER
-  const password = process.env.SMTP_PASSWORD
-  if (!host || !Number.isInteger(port) || port < 1 || port > 65535 || !user || !password) {
-    throw new Error('Email notification is not configured.')
-  }
-
-  const fields = getEmailFields(formType, data, submission)
-  const formNames = {
-    account: 'Open Account',
-    supplier: 'Supplier',
-    contact: 'Contact Us',
-  }
-  const formName = formNames[formType]
-  const rows = Object.entries(fields)
-  const transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass: password },
-  })
-
-  await transporter.sendMail({
-    from: { name: 'ZinoBNPL Website', address: user },
-    to: ['support@zinobnpl.com', 'connect@value-tools.com', 'ganeshsrinivas7@gmail.com'],
-    ...(formType === 'supplier'
-      ? { replyTo: submission.contact_email }
-      : formType === 'contact'
-        ? { replyTo: submission.email }
-        : {}),
-    subject: `New ZinoBNPL ${formName} submission`,
-    text: rows.map(([label, value]) => `${label}: ${value}`).join('\n'),
-    html: `<h2>New ZinoBNPL ${formName} submission</h2><table>${rows
-      .map(([label, value]) => `<tr><th align="left">${escapeHtml(label)}</th><td>${escapeHtml(value)}</td></tr>`)
-      .join('')}</table>`,
-  })
-}
+const isValidDocument = (file) => (
+  file &&
+  typeof file.name === 'string' &&
+  Boolean(file.name.trim()) &&
+  file.name.length <= 255 &&
+  Object.prototype.hasOwnProperty.call(documentTypes, file.type) &&
+  Number.isInteger(file.size) &&
+  file.size > 0 &&
+  file.size <= maxDocumentSize
+)
 
 const buildSubmission = (formType, data) => {
   if (!data || typeof data !== 'object' || Array.isArray(data)) return null
@@ -142,8 +76,6 @@ const buildSubmission = (formType, data) => {
     const country = readText(data, 'country', { required: true, max: 100 })
     const registration = readText(data, 'registration', { max: 100 })
     const creditLine = readText(data, 'creditLine', { required: true, max: 100 })
-    const taxDocument = data.taxDocument
-    const identityDocument = data.identityDocument
     const countryCode = registrationCountryCode(country || '')
     const rule = registrationRules[countryCode]
     const normalizedRegistration = (registration || '').toUpperCase().replace(/[\s-]/g, '')
@@ -157,24 +89,20 @@ const buildSubmission = (formType, data) => {
       registration === null ||
       creditLine === null ||
       !['Up to USD 10,000', 'USD 10,000–25,000', 'USD 25,000–100,000', 'Above USD 100,000'].includes(creditLine) ||
-      !taxDocument ||
-      typeof taxDocument.name !== 'string' ||
-      !taxDocument.name.trim() ||
-      !identityDocument ||
-      typeof identityDocument.name !== 'string' ||
-      !identityDocument.name.trim() ||
+      !isValidDocument(data.taxDocument) ||
+      !isValidDocument(data.identityDocument) ||
       (rule && (!normalizedRegistration || !rule.validate(normalizedRegistration)))
     ) return null
 
-    const submission = {
+    const fields = {
       business_name: businessName,
       contact_name: contactName,
       phone,
       country_of_registration: country,
       credit_line_needed: creditLine,
     }
-    if (registration) submission.tax_registration_id = registration
-    return submission
+    if (registration) fields.tax_registration_id = registration
+    return fields
   }
 
   if (formType === 'supplier') {
@@ -204,18 +132,21 @@ const buildSubmission = (formType, data) => {
       !isEmail(email)
     ) return null
 
-    const submission = {
+    const fields = {
       request_type: request === 'onboarding'
         ? 'Onboard my business as a supplier'
         : 'Recommend an existing supplier',
       supplier_name: supplierName,
       products,
       supplier_location: location,
+      supplier_country: country,
+      supplier_province: province,
+      supplier_address: address,
       contact_name: contactName,
       contact_email: email,
     }
-    if (website) submission.website = website
-    return submission
+    if (website) fields.website = website
+    return fields
   }
 
   if (formType === 'contact') {
@@ -238,24 +169,309 @@ const buildSubmission = (formType, data) => {
       message === null
     ) return null
 
-    const submission = {
+    const fields = {
       full_name: name,
       email,
       enquiry_type: enquiry,
       message,
     }
-    if (phone) submission.phone = phone
-    if (company) submission.company = company
-    if (country) submission.country = country
-    return submission
+    if (phone) fields.phone = phone
+    if (company) fields.company = company
+    if (country) fields.country = country
+    return fields
   }
 
   return null
 }
 
+const buildDocumentPlan = (submissionId, data) => (
+  [
+    { field: 'taxDocument', label: 'Tax registration document' },
+    { field: 'identityDocument', label: 'Identity document' },
+  ].map(({ field, label }) => {
+    const file = data[field]
+    return {
+      field,
+      label,
+      name: file.name.trim(),
+      type: file.type,
+      size: file.size,
+      path: `${submissionId}/${field}-${randomUUID()}.${documentTypes[file.type]}`,
+    }
+  })
+)
+
+const getEmailRows = (formType, fields, documents = []) => {
+  if (formType === 'account') {
+    return [
+      { label: 'Business name', value: fields.business_name },
+      { label: 'Contact name', value: fields.contact_name },
+      { label: 'Phone', value: fields.phone },
+      { label: 'Country of registration', value: fields.country_of_registration },
+      { label: 'Tax registration ID', value: fields.tax_registration_id || 'Not provided' },
+      { label: 'Credit line needed', value: fields.credit_line_needed },
+      ...documents.map((document) => ({
+        label: document.label,
+        value: document.name,
+        href: document.signedUrl,
+      })),
+    ]
+  }
+
+  if (formType === 'supplier') {
+    return [
+      { label: 'Request', value: fields.request_type },
+      { label: 'Supplier or company name', value: fields.supplier_name },
+      { label: 'Website', value: fields.website || 'Not provided' },
+      { label: 'Products or categories', value: fields.products },
+      { label: 'Country', value: fields.supplier_country },
+      { label: 'Province or state', value: fields.supplier_province },
+      { label: 'Address', value: fields.supplier_address },
+      { label: 'Contact name', value: fields.contact_name },
+      { label: 'Email', value: fields.contact_email },
+    ]
+  }
+
+  return [
+    { label: 'Full name', value: fields.full_name },
+    { label: 'Email', value: fields.email },
+    { label: 'Enquiry type', value: fields.enquiry_type },
+    { label: 'Message', value: fields.message },
+    { label: 'Phone', value: fields.phone || 'Not provided' },
+    { label: 'Company', value: fields.company || 'Not provided' },
+    { label: 'Country', value: fields.country || 'Not provided' },
+  ]
+}
+
+const escapeHtml = (value) => String(value)
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;')
+
+const sendNotificationEmail = async (formType, fields, documents = []) => {
+  const { apiKey, from } = getResendConfig()
+  const formNames = {
+    account: 'Open Account',
+    supplier: 'Supplier',
+    contact: 'Contact Us',
+  }
+  const rows = getEmailRows(formType, fields, documents)
+  const text = rows.map(({ label, value, href }) => (
+    `${label}: ${value}${href ? `\nSecure link (expires in 24 hours): ${href}` : ''}`
+  )).join('\n')
+  const html = `<h2>New ZinoBNPL ${formNames[formType]} submission</h2><table>${rows
+    .map(({ label, value, href }) => (
+      `<tr><th align="left">${escapeHtml(label)}</th><td>${escapeHtml(value)}${href
+        ? `<br><a href="${escapeHtml(href)}">Open securely (link expires in 24 hours)</a>`
+        : ''}</td></tr>`
+    ))
+    .join('')}</table>`
+  const replyTo = formType === 'supplier'
+    ? fields.contact_email
+    : formType === 'contact'
+      ? fields.email
+      : undefined
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from,
+      to: emailRecipients,
+      ...(replyTo ? { reply_to: replyTo } : {}),
+      subject: `New ZinoBNPL ${formNames[formType]} submission`,
+      text,
+      html,
+    }),
+  })
+
+  if (!response.ok) {
+    console.error(`Resend rejected ${formType} notification with status ${response.status}.`)
+    throw new Error('Resend could not send the notification email.')
+  }
+}
+
+const updateEmailStatus = async (supabase, id, emailStatus) => {
+  const { error } = await supabase
+    .from(submissionsTable)
+    .update({ email_status: emailStatus })
+    .eq('id', id)
+  if (error) console.error(`Could not update email status for submission ${id}:`, error.message)
+}
+
+const sendAndRespond = async (res, supabase, record, documents = []) => {
+  try {
+    await sendNotificationEmail(record.form_type, record.fields, documents)
+  } catch (error) {
+    await updateEmailStatus(supabase, record.id, 'failed')
+    console.error(`Notification email failed for ${record.form_type} submission ${record.id}:`, error.message)
+    return res.status(502).json({
+      error: 'Your submission was saved, but we could not send the notification email. Please contact support@zinobnpl.com instead of submitting again.',
+    })
+  }
+
+  await updateEmailStatus(supabase, record.id, 'sent')
+  return res.status(201).json({ submitted: true })
+}
+
+const prepareAccountSubmission = async (req, res, supabase, data) => {
+  const fields = buildSubmission('account', data)
+  if (!fields) return res.status(400).json({ error: 'Check the required fields and try again.' })
+
+  const id = randomUUID()
+  const documents = buildDocumentPlan(id, data)
+  const { error: insertError } = await supabase
+    .from(submissionsTable)
+    .insert({
+      id,
+      form_type: 'account',
+      fields,
+      documents,
+      status: 'uploading',
+      email_status: 'pending',
+    })
+  if (insertError) {
+    console.error('Could not save account submission in Supabase:', insertError.message)
+    return res.status(502).json({ error: 'We could not save your application. Please try again.' })
+  }
+
+  try {
+    const uploads = []
+    for (const document of documents) {
+      const { data: signedUpload, error } = await supabase
+        .storage
+        .from(documentsBucket)
+        .createSignedUploadUrl(document.path)
+      if (error || !signedUpload?.token) {
+        throw new Error(`Could not prepare ${document.label} upload.`)
+      }
+      uploads.push({ field: document.field, path: document.path, token: signedUpload.token })
+    }
+    return res.status(201).json({ prepared: true, submissionId: id, uploads })
+  } catch (error) {
+    const { error: deleteError } = await supabase.from(submissionsTable).delete().eq('id', id)
+    if (deleteError) console.error(`Could not remove incomplete submission ${id}:`, deleteError.message)
+    console.error(`Could not prepare account document uploads for ${id}:`, error.message)
+    return res.status(502).json({ error: 'We could not prepare secure document uploads. Please try again.' })
+  }
+}
+
+const abortAccountSubmission = async (res, supabase, submissionId) => {
+  if (typeof submissionId !== 'string' || !/^[0-9a-f-]{36}$/i.test(submissionId)) {
+    return res.status(400).json({ error: 'Invalid submission reference.' })
+  }
+  const { data: record, error: lookupError } = await supabase
+    .from(submissionsTable)
+    .select('id, form_type, documents, status')
+    .eq('id', submissionId)
+    .maybeSingle()
+  if (lookupError) {
+    console.error('Could not check incomplete account submission:', lookupError.message)
+    return res.status(502).json({ error: 'We could not clean up the incomplete upload.' })
+  }
+  if (!record) return res.status(200).json({ aborted: true })
+  if (record.form_type !== 'account' || record.status !== 'uploading') {
+    return res.status(409).json({ error: 'This submission can no longer be cancelled.' })
+  }
+
+  const paths = (record.documents || []).map((document) => document.path)
+  const { error: storageError } = await supabase.storage.from(documentsBucket).remove(paths)
+  if (storageError) {
+    console.error(`Could not remove incomplete account documents for ${submissionId}:`, storageError.message)
+    return res.status(502).json({ error: 'We could not clean up the incomplete upload.' })
+  }
+  const { error: deleteError } = await supabase.from(submissionsTable).delete().eq('id', submissionId)
+  if (deleteError) {
+    console.error(`Could not remove incomplete submission ${submissionId}:`, deleteError.message)
+    return res.status(502).json({ error: 'We could not clean up the incomplete upload.' })
+  }
+  return res.status(200).json({ aborted: true })
+}
+
+const completeAccountSubmission = async (res, supabase, submissionId) => {
+  if (typeof submissionId !== 'string' || !/^[0-9a-f-]{36}$/i.test(submissionId)) {
+    return res.status(400).json({ error: 'Invalid submission reference.' })
+  }
+  const { data: record, error: lookupError } = await supabase
+    .from(submissionsTable)
+    .select('id, form_type, fields, documents, status')
+    .eq('id', submissionId)
+    .maybeSingle()
+  if (lookupError) {
+    console.error('Could not load account submission:', lookupError.message)
+    return res.status(502).json({ error: 'We could not finish your application. Please contact support.' })
+  }
+  if (!record || record.form_type !== 'account') {
+    return res.status(404).json({ error: 'Application not found.' })
+  }
+  if (record.status !== 'uploading') {
+    return res.status(409).json({ error: 'This application has already been processed.' })
+  }
+
+  const documents = []
+  for (const document of record.documents || []) {
+    const { data: signedFile, error } = await supabase
+      .storage
+      .from(documentsBucket)
+      .createSignedUrl(document.path, 60 * 60 * 24)
+    if (error || !signedFile?.signedUrl) {
+      console.error(`Could not confirm uploaded file ${document.field} for ${submissionId}:`, error?.message || 'No signed URL returned.')
+      return res.status(400).json({ error: 'A required document upload is missing. Please try submitting again.' })
+    }
+    documents.push({ ...document, signedUrl: signedFile.signedUrl })
+  }
+  if (documents.length !== 2) {
+    return res.status(400).json({ error: 'Required application documents are missing.' })
+  }
+
+  const submittedAt = new Date().toISOString()
+  const { error: updateError } = await supabase
+    .from(submissionsTable)
+    .update({ status: 'submitted', submitted_at: submittedAt })
+    .eq('id', submissionId)
+    .eq('status', 'uploading')
+  if (updateError) {
+    console.error(`Could not finalize account submission ${submissionId}:`, updateError.message)
+    return res.status(502).json({ error: 'We could not finish your application. Please contact support.' })
+  }
+
+  return sendAndRespond(res, supabase, { ...record, status: 'submitted' }, documents)
+}
+
+const submitFormWithoutFiles = async (req, res, supabase, formType, data) => {
+  if (!['supplier', 'contact'].includes(formType)) {
+    return res.status(400).json({ error: 'Use the secure upload flow for account applications.' })
+  }
+  const fields = buildSubmission(formType, data)
+  if (!fields) return res.status(400).json({ error: 'Check the required fields and try again.' })
+
+  const { data: record, error } = await supabase
+    .from(submissionsTable)
+    .insert({
+      form_type: formType,
+      fields,
+      documents: [],
+      status: 'submitted',
+      email_status: 'pending',
+      submitted_at: new Date().toISOString(),
+    })
+    .select('id, form_type, fields')
+    .single()
+  if (error) {
+    console.error(`Could not save ${formType} submission in Supabase:`, error.message)
+    return res.status(502).json({ error: 'We could not save your details. Please try again.' })
+  }
+
+  return sendAndRespond(res, supabase, record)
+}
+
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store')
-
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST')
     return res.status(405).json({ error: 'Method not allowed.' })
@@ -265,78 +481,48 @@ export default async function handler(req, res) {
   const host = (req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim().toLowerCase()
   let originHost = ''
   try {
-    originHost = new URL(origin).host
+    originHost = new URL(origin).host.toLowerCase()
   } catch {
     return res.status(403).json({ error: 'Request origin not allowed.' })
   }
-  if (!host || originHost.toLowerCase() !== host) {
+  if (!host || originHost !== host) {
     return res.status(403).json({ error: 'Request origin not allowed.' })
   }
 
-  const { formType, data } = req.body || {}
-  const submission = buildSubmission(formType, data)
-  if (!submission) return res.status(400).json({ error: 'Check the required fields and try again.' })
+  let supabase
+  try {
+    supabase = createSupabaseAdmin()
+  } catch (error) {
+    console.error('Supabase submission service is not configured:', error.message)
+    return res.status(503).json({ error: 'The submission service is temporarily unavailable.' })
+  }
 
-  if (['account', 'supplier', 'contact'].includes(formType)) {
-    const smtpHost = process.env.SMTP_HOST
-    const smtpPort = Number(process.env.SMTP_PORT || 465)
-    if (!smtpHost || !Number.isInteger(smtpPort) || smtpPort < 1 || smtpPort > 65535 || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
-      console.error('Submission email is not configured: SMTP_HOST, SMTP_USER, and SMTP_PASSWORD are required; SMTP_PORT must be valid.')
+  const body = req.body && typeof req.body === 'object' ? req.body : {}
+  const action = body.action || 'submit'
+  if (action === 'abort') {
+    return abortAccountSubmission(res, supabase, body.submissionId)
+  }
+
+  if (action === 'prepare' || action === 'complete' || action === 'submit') {
+    try {
+      getResendConfig()
+    } catch (error) {
+      console.error('Resend submission service is not configured:', error.message)
       return res.status(503).json({ error: 'The submission service is temporarily unavailable.' })
     }
   }
 
-  const apiKey = process.env.WIX_API_KEY
-  const siteId = process.env.WIX_SITE_ID
-  if (!apiKey || !siteId) {
-    console.error('Wix submission is not configured: WIX_API_KEY or WIX_SITE_ID is missing.')
-    return res.status(503).json({ error: 'The submission service is temporarily unavailable.' })
-  }
-
-  let wixResponse
-  try {
-    wixResponse = await fetch('https://www.wixapis.com/form-submission-service/v4/submissions', {
-      method: 'POST',
-      headers: {
-        Authorization: apiKey,
-        'Content-Type': 'application/json',
-        'wix-site-id': siteId,
-      },
-      body: JSON.stringify({
-        submission: {
-          formId: formIds[formType],
-          submissions: submission,
-        },
-      }),
-    })
-  } catch (error) {
-    console.error(`Wix submission request failed for ${formType}:`, error.message)
-    return res.status(502).json({ error: 'We could not submit your details. Please try again.' })
-  }
-
-  if (!wixResponse.ok) {
-    const wixError = await getWixErrorInfo(wixResponse)
-    console.error(
-      `Wix rejected ${formType} submission with status ${wixResponse.status}` +
-      `${wixError.code ? ` (${wixError.code})` : ''}` +
-      `${wixError.message ? `: ${wixError.message}` : '.'}`,
-    )
-    return res.status(502).json({
-      error: 'We could not submit your details. Please try again.',
-      reference: wixError.code,
-    })
-  }
-
-  if (['account', 'supplier', 'contact'].includes(formType)) {
-    try {
-      await sendNotificationEmail(formType, data, submission)
-    } catch (error) {
-      console.error(`Email notification failed for ${formType}:`, error.message)
-      return res.status(502).json({
-        error: 'Your submission was saved, but we could not send the notification email. Please contact support@zinobnpl.com instead of submitting again.',
-      })
+  if (action === 'prepare') {
+    if (body.formType !== 'account') {
+      return res.status(400).json({ error: 'Only account applications use document uploads.' })
     }
+    return prepareAccountSubmission(req, res, supabase, body.data)
   }
-
-  return res.status(201).json({ submitted: true })
+  if (action === 'complete') {
+    return completeAccountSubmission(res, supabase, body.submissionId)
+  }
+  if (action === 'submit') {
+    return submitFormWithoutFiles(req, res, supabase, body.formType, body.data)
+  }
+  return res.status(400).json({ error: 'Unsupported submission action.' })
 }

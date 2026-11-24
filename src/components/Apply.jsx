@@ -125,6 +125,8 @@ export default function Apply() {
           type: identityDocument.type,
           size: identityDocument.size,
         },
+      }, {
+        files: { taxDocument, identityDocument },
       })
       setStatus('Your account application has been submitted. Our team will be in touch.')
     } catch (error) {
