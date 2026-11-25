@@ -94,6 +94,7 @@ const buildSubmission = (formType, data) => {
   if (formType === 'account') {
     const businessName = readText(data, 'businessName', { required: true, max: 200 })
     const contactName = readText(data, 'contactName', { required: true, max: 200 })
+    const email = readText(data, 'email', { required: true, max: 254 })
     const phone = readText(data, 'phone', { required: true, max: 50 })
     const country = readText(data, 'country', { required: true, max: 100 })
     const registration = readText(data, 'registration', { max: 100 })
@@ -105,6 +106,8 @@ const buildSubmission = (formType, data) => {
     if (
       businessName === null ||
       contactName === null ||
+      email === null ||
+      !isEmail(email) ||
       phone === null ||
       !/^\+[0-9][0-9\s()-]{6,24}$/.test(phone) ||
       country === null ||
@@ -119,6 +122,7 @@ const buildSubmission = (formType, data) => {
     const fields = {
       business_name: businessName,
       contact_name: contactName,
+      email,
       phone,
       country_of_registration: country,
       credit_line_needed: creditLine,
@@ -228,6 +232,7 @@ const getEmailRows = (formType, fields = {}, documents = []) => {
     account: [
       ['business_name', 'Business name'],
       ['contact_name', 'Contact name'],
+      ['email', 'Email ID'],
       ['phone', 'Phone'],
       ['country_of_registration', 'Country of registration'],
       ['tax_registration_id', 'Tax registration ID'],

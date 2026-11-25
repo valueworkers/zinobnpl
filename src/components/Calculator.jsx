@@ -51,7 +51,7 @@ export default function Calculator() {
   const freightInsurance = cif ? (orderValue * num(freight)) / 100 : 0
   const deposit = orderValue * 0.2
   const deferredPrincipal = orderValue * 0.8
-  const serviceFee = (deferredPrincipal * num(fee)) / 100
+  const serviceFee = (orderValue * num(fee)) / 100
   const deferredBalance = deferredPrincipal + serviceFee + freightInsurance
   const total = deposit + deferredBalance
   const d = Math.round(num(days))
@@ -175,7 +175,7 @@ export default function Calculator() {
                 <dl>
                   <div className="row"><dt>Order value</dt><dd>{money(orderValue)}</dd></div>
                   {cif && <div className="row"><dt>Freight + insurance (indicative)</dt><dd>{money(freightInsurance)}</dd></div>}
-                  <div className="row"><dt>Service fee (on 80% balance)</dt><dd>{money(serviceFee)}</dd></div>
+                  <div className="row"><dt>Service fee (on full invoice value)</dt><dd>{money(serviceFee)}</dd></div>
                   <div className="row total"><dt>Total including deferred charges</dt><dd>{money(total)}</dd></div>
                 </dl>
                 <div className="pay">

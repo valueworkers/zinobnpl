@@ -41,6 +41,9 @@ const labelForCategory = (category) => categoryLabels[category] || category
 
 const categories = [...new Set(supplierRecords.map((supplier) => supplier.category))]
   .sort((a, b) => labelForCategory(a).localeCompare(labelForCategory(b)))
+const featuredCategoryKeys = ['building', 'electronics', 'industrial', 'manufactured', 'apparel_accessories', 'hardware']
+const heroCategories = featuredCategoryKeys.filter((category) => categories.includes(category)).slice(0, 4)
+const displayedHeroCategories = heroCategories.length > 0 ? heroCategories : categories.slice(0, 4)
 
 const supplierImagesSupabaseUrl = (
   import.meta.env.VITE_SUPPLIER_IMAGES_SUPABASE_URL ||
@@ -133,18 +136,33 @@ export default function SuppliersPage() {
             Discover established manufacturers, compare capabilities and source with confidence.
             Explore verified suppliers across the categories your business needs.
           </p>
+          <p className="supplier-count" aria-label={`${supplierRecords.length} verified suppliers across ${categories.length} categories`}>
+            <strong>{supplierRecords.length}</strong>
+            <span>verified suppliers</span>
+            <span className="supplier-count-divider" aria-hidden="true">·</span>
+            <span>{categories.length} categories</span>
+          </p>
           <div className="supplier-hero-actions">
             <a className="btn btn-primary" href="#supplier-invite">
-              Join the supplier network
+              Become an approved supplier
             </a>
           </div>
         </div>
-        <aside className="supplier-summary" aria-label="Catalogue overview">
-          <span className="supplier-summary-mark" aria-hidden="true">✓</span>
-          <p className="eyebrow">Public catalogue</p>
-          <strong>{supplierRecords.length}</strong>
-          <p>verified suppliers across {categories.length} categories</p>
-          <span className="supplier-summary-note">Supplier details from zinobnpl's public listings</span>
+        <aside className="supplier-hero-discovery" aria-labelledby="supplier-hero-discovery-title">
+          <p className="eyebrow">Browse the network</p>
+          <h2 id="supplier-hero-discovery-title">Find suppliers by category</h2>
+          <p className="supplier-hero-discovery-copy">Start with the products and capabilities your business needs.</p>
+          <div className="supplier-hero-category-grid">
+            {displayedHeroCategories.map((category) => (
+              <a key={category} href={`/suppliers?category=${encodeURIComponent(category)}#supplier-catalogue`}>
+                {labelForCategory(category)}
+                <span aria-hidden="true">↗</span>
+              </a>
+            ))}
+          </div>
+          <a className="supplier-hero-all" href="#supplier-catalogue">
+            View all suppliers <span aria-hidden="true">→</span>
+          </a>
         </aside>
       </section>
 
@@ -261,15 +279,13 @@ export default function SuppliersPage() {
           <div className="supplier-invite-card">
             <div className="supplier-invite-copy">
               <p className="eyebrow">Supplier partnerships</p>
-              <h2 id="supplier-invite-title">Grow the supplier network.</h2>
-              <p>
-                Ready to join our network? Share your business details to get started, or recommend
-                another supplier using the form.
-              </p>
+              <h2 id="supplier-invite-title">Are you a supplier or manufacturer in China?</h2>
+              <p>Join our network as an approved supplier. Start your onboarding and introduce your business to buyers worldwide.</p>
             </div>
             <div className="supplier-invite-actions">
               <a className="btn btn-primary" href="/recommend-supplier?request=onboarding">
-                Become a supplier
+                Click to onboard
+                <span aria-hidden="true">→</span>
               </a>
             </div>
           </div>

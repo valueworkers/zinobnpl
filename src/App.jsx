@@ -9,7 +9,6 @@ import Compare from './components/Compare'
 import Categories from './components/Categories'
 import Apply from './components/Apply'
 import Faq from './components/Faq'
-import Closing from './components/Closing'
 import Footer from './components/Footer'
 import ThemeSwitcher from './components/ThemeSwitcher'
 import SuppliersPage from './pages/SuppliersPage'
@@ -48,7 +47,6 @@ export default function App() {
           <Categories />
           <Apply />
           <Faq />
-          <Closing />
         </main>
       )}
       <Footer isStandalonePage={isStandalonePage} />

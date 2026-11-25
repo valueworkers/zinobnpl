@@ -247,31 +247,33 @@ function ContactPage({ page }) {
 
         <div className="contact-layout">
           <aside className="contact-aside">
-            <p className="eyebrow">Talk to ZinoBNPL</p>
-            <h2>One enquiry.<br />The right team.</h2>
+            <p className="eyebrow">Supplier & buyer support</p>
+            <h2>Let’s build better partnerships.</h2>
             <p className="contact-aside-lede">
-              Share a few details and we’ll route your message to the appropriate team.
+              Whether you’re a supplier in China or a business buyer, we’re here to help.
             </p>
 
             <div className="contact-options">
-              <div>
+              <div className="contact-option contact-option-supplier">
                 <span>01</span>
                 <div>
-                  <h3>Suppliers</h3>
-                  <p>Onboarding, verification, and product partnerships.</p>
+                  <p className="contact-option-label">For suppliers</p>
+                  <h3>Join our approved network</h3>
+                  <p>Get help with onboarding, verification, and product listings.</p>
                 </div>
               </div>
-              <div>
+              <div className="contact-option">
                 <span>02</span>
                 <div>
-                  <h3>Buyers</h3>
-                  <p>Account, sourcing, credit, and order support.</p>
+                  <p className="contact-option-label">For buyers</p>
+                  <h3>Get support with your business</h3>
+                  <p>Talk to us about accounts, sourcing, credit, or orders.</p>
                 </div>
               </div>
             </div>
 
             <a className="contact-direct-email" href={`mailto:${contactEmail}`}>
-              <span>Email us directly</span>
+              <span>Prefer email? Contact us directly</span>
               <strong>{contactEmail}</strong>
             </a>
           </aside>
@@ -399,7 +401,7 @@ export default function InfoPage({ page }) {
   }
 
   return (
-    <main id="top" className="info-page">
+    <main id="top" className={page === infoPages['/about-us'] ? 'info-page about-page' : 'info-page'}>
       <div className="wrap">
         <section className="info-hero">
           <p className="eyebrow">{page.eyebrow}</p>

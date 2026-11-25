@@ -20,7 +20,7 @@ const phoneCodes = countries.flatMap((country) => country.dialCodes.map((dialCod
 
 export default function Apply() {
   const defaultPhoneCode = phoneCodes.find((option) => option.dialCode === '+91' && option.value.startsWith('IN-'))?.value || ''
-  const [form, setForm] = useState({ biz: '', person: '', phoneCode: defaultPhoneCode, phone: '', country: '', registration: '', line: lines[0] })
+  const [form, setForm] = useState({ biz: '', person: '', email: '', phoneCode: defaultPhoneCode, phone: '', country: '', registration: '', line: lines[0] })
   const [taxDocument, setTaxDocument] = useState(null)
   const [identityDocument, setIdentityDocument] = useState(null)
   const [status, setStatus] = useState('')
@@ -77,8 +77,12 @@ export default function Apply() {
   const submit = async (e) => {
     e.preventDefault()
     setRegistrationTouched(true)
-    if (!form.biz.trim() || !form.person.trim() || !form.phoneCode || !form.phone.trim() || !form.country.trim()) {
-      setStatus('Add your business name, contact name, country of registration, and phone number with a country code.')
+    if (!form.biz.trim() || !form.person.trim() || !form.email.trim() || !form.phoneCode || !form.phone.trim() || !form.country.trim()) {
+      setStatus('Add your business name, contact name, email ID, country of registration, and phone number with a country code.')
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      setStatus('Enter a valid email ID.')
       return
     }
     if (registrationRule && !registrationValue) {
@@ -111,6 +115,7 @@ export default function Apply() {
       const result = await submitForm('account', {
         businessName: form.biz,
         contactName: form.person,
+        email: form.email,
         phone: `${phoneCode.dialCode} ${form.phone.trim()}`,
         country: form.country,
         registration: registrationValue,
@@ -167,22 +172,26 @@ export default function Apply() {
                 <input id="person" autoComplete="name" required value={form.person} onChange={set('person')} />
               </div>
               <div className="f">
-                <label htmlFor="phone">Phone (WhatsApp)</label>
-                <div className="phone-input">
-                  <select
-                    aria-label="Phone country code"
-                    autoComplete="tel-country-code"
-                    required
-                    value={form.phoneCode}
-                    onChange={set('phoneCode')}
-                  >
-                    <option value="">Code</option>
-                    {phoneCodes.map((option) => (
-                      <option key={option.value} value={option.value} title={option.label}>{option.shortLabel}</option>
-                    ))}
-                  </select>
-                  <input id="phone" type="tel" inputMode="tel" autoComplete="tel-national" placeholder="Phone number" value={form.phone} onChange={set('phone')} />
-                </div>
+                <label htmlFor="email">Email ID</label>
+                <input id="email" type="email" inputMode="email" autoComplete="email" placeholder="you@company.com" required value={form.email} onChange={set('email')} />
+              </div>
+            </div>
+            <div className="f">
+              <label htmlFor="phone">Phone (WhatsApp)</label>
+              <div className="phone-input">
+                <select
+                  aria-label="Phone country code"
+                  autoComplete="tel-country-code"
+                  required
+                  value={form.phoneCode}
+                  onChange={set('phoneCode')}
+                >
+                  <option value="">Code</option>
+                  {phoneCodes.map((option) => (
+                    <option key={option.value} value={option.value} title={option.label}>{option.shortLabel}</option>
+                  ))}
+                </select>
+                <input id="phone" type="tel" inputMode="tel" autoComplete="tel-national" placeholder="Phone number" value={form.phone} onChange={set('phone')} />
               </div>
             </div>
             <div className="two registration-row">
